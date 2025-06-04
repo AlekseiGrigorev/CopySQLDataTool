@@ -1,0 +1,40 @@
+{
+    "config": {
+        "source": {
+            "driver": "mysql",
+            "dsn": "root:root@tcp(127.0.0.1:3306)/database"
+        },
+        "dest": {
+            "driver": "mysql",
+            "dsn": "root2:root2@tcp(127.0.0.2:3306)/database2"
+        },
+        "default_dataset": {
+            "insert_command": "INSERT IGNORE INTO",
+            "rows": 1000,
+            "copy_to": "file,db",
+            "type": "simple",
+            "execution_time": 0,
+            "statement": "prepared"
+        }
+    },
+    "datasets": [
+        {
+            "query": "SELECT * FROM table",
+            "table": "table",
+            "enabled": true,
+            "initial_id": 0
+        },
+        {
+            "query": "SELECT * FROM table1",
+            "table": "table1",
+            "enabled": true,
+            "initial_id": 0
+        },
+        {
+            "query": "",
+            "table": "",
+            "enabled": true,
+            "copy_to": "db"
+        }
+    ]
+}

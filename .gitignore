@@ -23,3 +23,9 @@ go.work.sum
 
 # env file
 .env
+/.qodo
+/.vscode
+/config_local.json
+/config.json
+/prompts.txt
+*.sql
