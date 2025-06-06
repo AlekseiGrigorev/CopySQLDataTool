@@ -25,7 +25,11 @@ go.work.sum
 .env
 /.qodo
 /.vscode
-/config_local.json
 /config.json
+/config_*.json
 /prompts.txt
 *.sql
+/sandbox.go
+/sandbox.txt
+/log_*.txt
+/internal/applog/test.log

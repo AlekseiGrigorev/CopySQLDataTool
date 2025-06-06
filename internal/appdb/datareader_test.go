@@ -58,7 +58,15 @@ func TestDataReaderEmpty(t *testing.T) {
 	prepareDb()
 	DR.AppDb.Exec(TRUNC_TBL_SQL)
 	counter := 0
-	for DR.Next() {
+	for {
+		next, err := DR.Next()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if !next {
+			break
+		}
 		counter++
 		res, err := DR.Scan()
 		if err != nil {
@@ -74,7 +82,15 @@ func TestDataReaderOne(t *testing.T) {
 	DR.AppDb.Exec(TRUNC_TBL_SQL)
 	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + " VALUES (1)")
 	counter := 0
-	for DR.Next() {
+	for {
+		next, err := DR.Next()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if !next {
+			break
+		}
 		counter++
 		res, err := DR.Scan()
 		if err != nil {
@@ -90,7 +106,15 @@ func TestDataReaderMany(t *testing.T) {
 	DR.AppDb.Exec(TRUNC_TBL_SQL)
 	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
 	counter := 0
-	for DR.Next() {
+	for {
+		next, err := DR.Next()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if !next {
+			break
+		}
 		counter++
 		res, err := DR.Scan()
 		if err != nil {
@@ -106,7 +130,15 @@ func TestDataReaderManyOrderById(t *testing.T) {
 	DR.AppDb.Exec(TRUNC_TBL_SQL)
 	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
 	counter := 0
-	for DR.Next() {
+	for {
+		next, err := DR.Next()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if !next {
+			break
+		}
 		counter++
 		res, err := DR.Scan()
 		if err != nil {
@@ -124,7 +156,15 @@ func TestDataReaderManyOrderByIdWrongType(t *testing.T) {
 	DR.Query = SELECT_FROM + TBL_NAME
 	DR.ExecutionTime = 1
 	counter := 0
-	for DR.Next() {
+	for {
+		next, err := DR.Next()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if !next {
+			break
+		}
 		if counter > 3 {
 			break
 		}

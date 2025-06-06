@@ -1,9 +1,10 @@
 package main
 
 import (
+	"copysqldatatool/internal/appconfig"
 	"copysqldatatool/internal/appdb"
+	"copysqldatatool/internal/appfilepath"
 	"copysqldatatool/internal/applog"
-	"copysqldatatool/internal/config"
 	"flag"
 	"fmt"
 	"os"
@@ -14,51 +15,101 @@ import (
 
 const ERROR = "Error:"
 
-var Config config.Config
+var Config appconfig.Config
 var Log applog.AppLog
+var Formatter appdb.Formatter
+
+func prepareLogFile(logFile string) (*os.File, error) {
+	if logFile == "" {
+		return nil, nil
+	}
+
+	fp := appfilepath.AppFilePath{
+		Path: logFile,
+	}
+	logFile = fp.GetWithDateTime()
+	file, err := os.Create(logFile)
+	if err != nil {
+		Log.Error("Error creating file:", err)
+		return nil, err
+	}
+	return file, nil
+}
 
 func main() {
-	Log.Info("Program started")
-	configFile := flag.String("config", "config.json", "Path to the configuration file")
+	Log = applog.AppLog{}
+
+	configFileName := flag.String("config", "config.json", "Path to the configuration file")
+	logFileName := flag.String("log", "", "Path to the log file")
 	flag.Parse()
-	Log.Info("Config file:", *configFile)
-	Config = config.Config{}
-	err := Config.LoadConfig(*configFile)
-	if err != nil {
+
+	logFile, err := prepareLogFile(*logFileName)
+	if logFile != nil && err == nil {
+		Log.File = logFile
+		defer logFile.Close()
+	}
+
+	Log.Info("Program started")
+	Log.Info("Config file:", *configFileName)
+
+	if loadConfig(*configFileName) != nil {
 		Log.Error("Error loading config:", err)
 		return
 	}
 
-	if (Config.Datasets == nil) || (len(Config.Datasets) == 0) {
-		Log.Error("No datasets found in the config")
-		return
-	}
+	Formatter = appdb.Formatter{}
 
 	for _, dataset := range Config.Datasets {
-		if !dataset.Enabled {
-			Log.Warn("Skipping disabled table:", dataset.Table)
-			continue
-		}
-		if dataset.Table == "" {
-			Log.Error("Skipping wrong table:", dataset.Table, "Table name is empty")
-			continue
-		}
-		if dataset.Query == "" {
-			Log.Error("Skipping wrong table:", dataset.Table, "Query is empty")
-			continue
-		}
-		Log.Info("Processing table:", dataset.Table)
-		err = Process(Config.Config.Source, Config.Config.Dest, dataset)
-		if err == nil {
-			Log.Ok("Processing completed for table:", dataset.Table)
-		} else {
-			Log.Error("Error processing table:", dataset.Table, ERROR, err)
-		}
+		processDataset(dataset)
 	}
 	Log.Ok("Program ended")
 }
 
-func Process(src config.DBConfig, dst config.DBConfig, dataset config.Dataset) error {
+func loadConfig(configPath string) error {
+	Config = appconfig.Config{}
+	err := Config.LoadConfig(configPath)
+	if err != nil {
+		Log.Error("Error loading config:", err)
+		return err
+	}
+
+	err = Config.Validate()
+	if err != nil {
+		Log.Error("Error validating config:", err)
+		return err
+	}
+
+	if (Config.Datasets == nil) || (len(Config.Datasets) == 0) {
+		Log.Error("No datasets found in the config")
+		return fmt.Errorf("no datasets found in the config")
+	}
+
+	return nil
+}
+
+func processDataset(dataset appconfig.Dataset) {
+	if !dataset.Enabled {
+		Log.Warn("Skipping disabled table:", dataset.Table)
+		return
+	}
+	if dataset.Table == "" {
+		Log.Error("Skipping wrong table:", dataset.Table, "Table name is empty")
+		return
+	}
+	if dataset.Query == "" {
+		Log.Error("Skipping wrong table:", dataset.Table, "Query is empty")
+		return
+	}
+	Log.Info("Processing table:", dataset.Table)
+	err := process(Config.Config.Source, Config.Config.Dest, dataset)
+	if err == nil {
+		Log.Ok("Processing completed for table:", dataset.Table)
+	} else {
+		Log.Error("Error processing table:", dataset.Table, ERROR, err)
+	}
+}
+
+func process(src appconfig.DBConfig, dst appconfig.DBConfig, dataset appconfig.Dataset) error {
 	if dataset.CopyToFileEnabled() {
 		Log.Info("Write to file started for table:", dataset.Table)
 
@@ -94,9 +145,14 @@ func createOutputFile(table string) (*os.File, error) {
 	return os.Create(table + ".sql")
 }
 
-func processRowsAndWriteToDb(src config.DBConfig, dst config.DBConfig, dataset config.Dataset) error {
+func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dataset appconfig.Dataset) error {
 	dataReader := createDataReader(src, dataset)
 	dataReader.Open()
+	err := dataReader.Open()
+	if err != nil {
+		Log.Error("Error opening data reader:", err)
+		return err
+	}
 	defer dataReader.Close()
 
 	// Connect to the destination database
@@ -104,7 +160,7 @@ func processRowsAndWriteToDb(src config.DBConfig, dst config.DBConfig, dataset c
 		Driver: dst.Driver,
 		Dsn:    dst.DSN,
 	}
-	err := db.Open()
+	err = db.Open()
 	if err != nil {
 		Log.Error("Error connecting to the database:", err)
 		return err
@@ -125,7 +181,17 @@ func processRowsAndWriteToDb(src config.DBConfig, dst config.DBConfig, dataset c
 		}
 	}
 
-	for dataReader.Next() {
+	for {
+		next, err := dataReader.Next()
+		if err != nil {
+			Log.Error("Error reading next row:", err)
+			return err
+		}
+
+		if !next {
+			break
+		}
+
 		if rowsCount == 0 {
 			columns = dataReader.WrappedColumns()
 		}
@@ -138,7 +204,7 @@ func processRowsAndWriteToDb(src config.DBConfig, dst config.DBConfig, dataset c
 
 		insertStatement := getInsertStatement(values, dataset)
 		buffer = appendRowToBuffer(buffer, dataset, columns, insertStatement, count)
-		if dataset.Statement == config.STATEMENT_PREPARED {
+		if dataset.SqlStatement == appconfig.STATEMENT_PREPARED {
 			data = append(data, values...)
 		}
 		count++
@@ -177,22 +243,26 @@ func processRowsAndWriteToDb(src config.DBConfig, dst config.DBConfig, dataset c
 	return nil
 }
 
-func createDataReader(dbConf config.DBConfig, dataset config.Dataset) *appdb.DataReader {
+func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *appdb.DataReader {
 	return &appdb.DataReader{
 		AppDb: appdb.AppDb{
 			Driver: dbConf.Driver,
 			Dsn:    dbConf.DSN,
 		},
 		Query:         dataset.Query,
-		Type:          dataset.Type,
+		Type:          dataset.QueryType,
 		ExecutionTime: dataset.ExecutionTime,
 		InitialId:     dataset.InitialId,
 	}
 }
 
-func processRowsAndWriteToFile(src config.DBConfig, file *os.File, dataset config.Dataset) error {
+func processRowsAndWriteToFile(src appconfig.DBConfig, file *os.File, dataset appconfig.Dataset) error {
 	dataReader := createDataReader(src, dataset)
-	dataReader.Open()
+	err := dataReader.Open()
+	if err != nil {
+		Log.Error("Error opening data reader:", err)
+		return err
+	}
 	defer dataReader.Close()
 
 	var buffer []string
@@ -200,7 +270,17 @@ func processRowsAndWriteToFile(src config.DBConfig, file *os.File, dataset confi
 	rowsCount := 0
 	columns := make([]string, 0)
 
-	for dataReader.Next() {
+	for {
+		next, err := dataReader.Next()
+		if err != nil {
+			Log.Error("Error reading next row:", err)
+			return err
+		}
+
+		if !next {
+			break
+		}
+
 		if rowsCount == 0 {
 			columns = dataReader.WrappedColumns()
 		}
@@ -238,7 +318,7 @@ func processRowsAndWriteToFile(src config.DBConfig, file *os.File, dataset confi
 	return nil
 }
 
-func appendRowToBuffer(buffer []string, dataset config.Dataset, columns []string, insertStatement string, count int) []string {
+func appendRowToBuffer(buffer []string, dataset appconfig.Dataset, columns []string, insertStatement string, count int) []string {
 	if count == 0 {
 		buffer = appendInitialInsert(buffer, dataset.InsertCommand, dataset.Table, columns, insertStatement)
 	} else {
@@ -247,42 +327,11 @@ func appendRowToBuffer(buffer []string, dataset config.Dataset, columns []string
 	return buffer
 }
 
-func getInsertStatement(values []any, dataset config.Dataset) string {
-	if dataset.Statement == config.STATEMENT_PREPARED {
-		return buildInsertPlaceholders(len(values))
+func getInsertStatement(values []any, dataset appconfig.Dataset) string {
+	if dataset.SqlStatement == appconfig.STATEMENT_PREPARED {
+		return Formatter.BuildInsertPlaceholders(len(values))
 	}
-	return formatRowValues(values)
-}
-
-func buildInsertPlaceholders(columnCount int) string {
-	return strings.Repeat("?, ", columnCount-1) + "?"
-}
-
-func formatRowValues(values []interface{}) string {
-	var formattedValues []string
-
-	for _, val := range values {
-		formattedValues = append(formattedValues, formatSingleValue(val))
-	}
-
-	return strings.Join(formattedValues, ", ")
-}
-
-func formatSingleValue(val any) string {
-	switch v := val.(type) {
-	case []byte:
-		return fmt.Sprintf("'%s'", strings.ReplaceAll(string(v), "'", "''"))
-	case string:
-		return fmt.Sprintf("'%s'", strings.ReplaceAll(string(v), "'", "''"))
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%d", v)
-	case float32, float64:
-		return fmt.Sprintf("%f", v)
-	case nil:
-		return "NULL"
-	default:
-		return fmt.Sprintf("'%v'", v)
-	}
+	return Formatter.FormatRowValues(values)
 }
 
 func appendInitialInsert(buffer []string, command string, table string, columns []string, insertStatement string) []string {

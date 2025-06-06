@@ -154,13 +154,19 @@ func (dataReader *DataReader) WrappedColumns() []string {
 	return cols
 }
 
-func (dataReader *DataReader) Next() bool {
+func (dataReader *DataReader) Next() (bool, error) {
 	if dataReader.rows == nil {
-		dataReader.query()
+		err := dataReader.query()
+		if err != nil {
+			return false, err
+		}
 	}
 	hasNext := dataReader.rows.Next()
 	if !hasNext {
-		dataReader.query()
+		err := dataReader.query()
+		if err != nil {
+			return false, err
+		}
 		// Защита от бесконечного цикла если запрос не соответствует указанному типу запроса
 		if dataReader.lastQuery != dataReader.prevQuery {
 			hasNext = dataReader.rows.Next()
@@ -168,9 +174,9 @@ func (dataReader *DataReader) Next() bool {
 	}
 	if !hasNext {
 		dataReader.Close()
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func (dataReader *DataReader) Scan() ([]any, error) {
