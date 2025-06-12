@@ -1,3 +1,6 @@
+// Description: This package provides file path management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package appfilepath
 
 import (

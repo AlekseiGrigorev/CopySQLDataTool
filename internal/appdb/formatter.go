@@ -1,3 +1,6 @@
+// Description: This package provides db management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package appdb
 
 import (
@@ -7,6 +10,26 @@ import (
 )
 
 type Formatter struct {
+}
+
+func (f *Formatter) AppendInitialInsert(buffer []string, command string, table string, columns []string, insertStatement string) []string {
+	columnsStr := strings.Join(columns, ", ")
+	insertCommand := fmt.Sprintf("%s %s (%s) VALUES", command, table, columnsStr)
+	buffer = append(buffer, insertCommand)
+	buffer = append(buffer, fmt.Sprintf("(%s)", insertStatement))
+	return buffer
+}
+
+func (f *Formatter) GetInsertCommand(command string, table string, columns []string) string {
+	columnsStr := strings.Join(columns, ", ")
+	return fmt.Sprintf("%s %s (%s) VALUES", command, table, columnsStr)
+}
+
+func (f *Formatter) GetInsertStatement(statement string, values []any) string {
+	if statement == STATEMENT_PREPARED {
+		return f.BuildInsertPlaceholders(len(values))
+	}
+	return f.FormatRowValues(values)
 }
 
 func (f *Formatter) FormatValue(val any) string {

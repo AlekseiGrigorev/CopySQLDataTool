@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const DSN = "root:root@tcp(127.0.0.1:3306)/test"
 const TBL_NAME = "test_table"
 const TRUNC_TBL_SQL = "TRUNCATE TABLE " + TBL_NAME
 const INSERT_INTO = "INSERT INTO "
@@ -14,52 +15,67 @@ const VALUES_123 = " VALUES (1), (2), (3)"
 const SELECT_FROM = "SELECT * FROM "
 const SELECT_TBL_SQL = SELECT_FROM + TBL_NAME + ";"
 
-var DR DataReader
-
-func prepareDb() {
-	DR.Close()
-	DR.AppDb = AppDb{Driver: "mysql", Dsn: "root:root@tcp(127.0.0.1:3306)/test"}
-	DR.Limit = 1
-	DR.Query = SELECT_TBL_SQL
-	DR.AppDb.Open()
+func prepareDb() DataReader {
+	dr := DataReader{
+		AppDb: &AppDb{Driver: "mysql", Dsn: DSN},
+		Limit: 1,
+		Query: SELECT_TBL_SQL,
+	}
+	dr.Open()
+	return dr
 }
 
-func prepareDbOrderById() {
-	DR.Close()
-	DR.AppDb = AppDb{Driver: "mysql", Dsn: "root:root@tcp(127.0.0.1:3306)/test"}
-	DR.Limit = 1
-	DR.Query = SELECT_FROM + TBL_NAME + " WHERE id > {{id}} ORDER BY id LIMIT 1;"
-	DR.Type = "orderbyid"
-	DR.ExecutionTime = 3
-	DR.AppDb.Open()
+func prepareDbOrderById() DataReader {
+	dr := DataReader{
+		AppDb:         &AppDb{Driver: "mysql", Dsn: DSN},
+		Limit:         1,
+		Query:         SELECT_FROM + TBL_NAME + " WHERE id > {{id}} ORDER BY id LIMIT 1;",
+		Type:          TYPE_ORDERBYID,
+		ExecutionTime: 3,
+	}
+	dr.AppDb.Open()
+	return dr
 }
 
 func TestPrepareQuery(t *testing.T) {
+	query := SELECT_TBL_SQL
+	dr := DataReader{
+		Query: SELECT_TBL_SQL,
+		Limit: 1,
+		Type:  TYPE_SIMPLE,
+	}
+	result := dr.prepareQuery()
+	assert.Equal(t, query, result)
+}
+
+func TestPrepareQueryLimitOffset(t *testing.T) {
 	query := SELECT_FROM + TBL_NAME + " LIMIT 1 OFFSET 0;"
-	m := DataReader{
+	dr := DataReader{
 		Query: SELECT_TBL_SQL + " ",
 		Limit: 1,
+		Type:  TYPE_LIMIT_OFFSET,
 	}
-	result := m.prepareQuery()
+	result := dr.prepareQuery()
 	assert.Equal(t, query, result)
 }
 
 func TestPrepareQueryOrderById(t *testing.T) {
 	query := SELECT_FROM + TBL_NAME + " WHERE id > 0 ORDER BY id LIMIT 1;"
-	m := DataReader{
+	dr := DataReader{
 		Query: SELECT_FROM + TBL_NAME + " WHERE id > {{id}} ORDER BY id LIMIT 1;",
-		Type:  "orderbyid",
+		Type:  TYPE_ORDERBYID,
 	}
-	result := m.prepareQuery()
+	result := dr.prepareQuery()
 	assert.Equal(t, query, result)
 }
 
 func TestDataReaderEmpty(t *testing.T) {
-	prepareDb()
-	DR.AppDb.Exec(TRUNC_TBL_SQL)
+	dr := prepareDb()
+	defer dr.Close()
+	dr.AppDb.Exec(TRUNC_TBL_SQL)
 	counter := 0
 	for {
-		next, err := DR.Next()
+		next, err := dr.Next()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -68,7 +84,7 @@ func TestDataReaderEmpty(t *testing.T) {
 			break
 		}
 		counter++
-		res, err := DR.Scan()
+		res, err := dr.Scan()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -78,12 +94,13 @@ func TestDataReaderEmpty(t *testing.T) {
 }
 
 func TestDataReaderOne(t *testing.T) {
-	prepareDb()
-	DR.AppDb.Exec(TRUNC_TBL_SQL)
-	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + " VALUES (1)")
+	dr := prepareDb()
+	defer dr.Close()
+	dr.AppDb.Exec(TRUNC_TBL_SQL)
+	dr.AppDb.Exec(INSERT_INTO + TBL_NAME + " VALUES (1)")
 	counter := 0
 	for {
-		next, err := DR.Next()
+		next, err := dr.Next()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -92,7 +109,7 @@ func TestDataReaderOne(t *testing.T) {
 			break
 		}
 		counter++
-		res, err := DR.Scan()
+		res, err := dr.Scan()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -102,12 +119,13 @@ func TestDataReaderOne(t *testing.T) {
 }
 
 func TestDataReaderMany(t *testing.T) {
-	prepareDb()
-	DR.AppDb.Exec(TRUNC_TBL_SQL)
-	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
+	dr := prepareDb()
+	defer dr.Close()
+	dr.AppDb.Exec(TRUNC_TBL_SQL)
+	dr.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
 	counter := 0
 	for {
-		next, err := DR.Next()
+		next, err := dr.Next()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -116,7 +134,7 @@ func TestDataReaderMany(t *testing.T) {
 			break
 		}
 		counter++
-		res, err := DR.Scan()
+		res, err := dr.Scan()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -126,12 +144,13 @@ func TestDataReaderMany(t *testing.T) {
 }
 
 func TestDataReaderManyOrderById(t *testing.T) {
-	prepareDbOrderById()
-	DR.AppDb.Exec(TRUNC_TBL_SQL)
-	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
+	dr := prepareDbOrderById()
+	defer dr.Close()
+	dr.AppDb.Exec(TRUNC_TBL_SQL)
+	dr.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
 	counter := 0
 	for {
-		next, err := DR.Next()
+		next, err := dr.Next()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -140,7 +159,7 @@ func TestDataReaderManyOrderById(t *testing.T) {
 			break
 		}
 		counter++
-		res, err := DR.Scan()
+		res, err := dr.Scan()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -150,14 +169,15 @@ func TestDataReaderManyOrderById(t *testing.T) {
 }
 
 func TestDataReaderManyOrderByIdWrongType(t *testing.T) {
-	prepareDbOrderById()
-	DR.AppDb.Exec(TRUNC_TBL_SQL)
-	DR.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
-	DR.Query = SELECT_FROM + TBL_NAME
-	DR.ExecutionTime = 1
+	dr := prepareDbOrderById()
+	defer dr.Close()
+	dr.AppDb.Exec(TRUNC_TBL_SQL)
+	dr.AppDb.Exec(INSERT_INTO + TBL_NAME + VALUES_123)
+	dr.Query = SELECT_FROM + TBL_NAME
+	dr.ExecutionTime = 1
 	counter := 0
 	for {
-		next, err := DR.Next()
+		next, err := dr.Next()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -169,7 +189,7 @@ func TestDataReaderManyOrderByIdWrongType(t *testing.T) {
 			break
 		}
 		counter++
-		res, err := DR.Scan()
+		res, err := dr.Scan()
 		if err != nil {
 			fmt.Println(err)
 		}

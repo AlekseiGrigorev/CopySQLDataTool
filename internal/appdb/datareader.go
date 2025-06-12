@@ -1,3 +1,6 @@
+// Description: This package provides db management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package appdb
 
 import (
@@ -7,15 +10,8 @@ import (
 	"time"
 )
 
-const (
-	TYPE_UNDEFINED    = ""
-	TYPE_SIMPLE       = "simple"
-	TYPE_LIMIT_OFFSET = "limitoffset"
-	TYPE_ORDERBYID    = "orderbyid"
-)
-
 type DataReader struct {
-	AppDb         AppDb
+	AppDb         *AppDb
 	Limit         int
 	Query         string
 	Args          []any

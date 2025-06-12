@@ -33,3 +33,4 @@ go.work.sum
 /sandbox.txt
 /log_*.txt
 /internal/applog/test.log
+/internal/app/test.txt

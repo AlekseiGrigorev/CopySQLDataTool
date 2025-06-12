@@ -1,3 +1,6 @@
+// Description: This package provides db management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package appdb
 
 import (
@@ -6,6 +9,15 @@ import (
 
 	_ "github.com/ClickHouse/clickhouse-go/v2"
 	_ "github.com/go-sql-driver/mysql"
+)
+
+const (
+	TYPE_UNDEFINED     = ""
+	TYPE_SIMPLE        = "simple"
+	TYPE_LIMIT_OFFSET  = "limitoffset"
+	TYPE_ORDERBYID     = "orderbyid"
+	STATEMENT_PREPARED = "prepared"
+	STATEMENT_RAW      = "raw"
 )
 
 type AppDb struct {

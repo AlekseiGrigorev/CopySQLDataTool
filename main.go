@@ -1,6 +1,10 @@
+// Description: This package provides main entry point for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package main
 
 import (
+	"copysqldatatool/internal/app"
 	"copysqldatatool/internal/appconfig"
 	"copysqldatatool/internal/appdb"
 	"copysqldatatool/internal/appfilepath"
@@ -8,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -167,12 +170,6 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 	}
 	defer db.Close()
 
-	var buffer []string
-	data := make([]any, 0)
-	count := 0
-	rowsCount := 0
-	columns := make([]string, 0)
-
 	if dataset.OnInsertSessionStart != "" {
 		err = db.ExecMultiple(dataset.OnInsertSessionStart)
 		if err != nil {
@@ -181,53 +178,20 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 		}
 	}
 
-	for {
-		next, err := dataReader.Next()
-		if err != nil {
-			Log.Error("Error reading next row:", err)
-			return err
-		}
-
-		if !next {
-			break
-		}
-
-		if rowsCount == 0 {
-			columns = dataReader.WrappedColumns()
-		}
-
-		values, err := dataReader.Scan()
-		if err != nil {
-			Log.Error("Error scanning row:", err)
-			return err
-		}
-
-		insertStatement := getInsertStatement(values, dataset)
-		buffer = appendRowToBuffer(buffer, dataset, columns, insertStatement, count)
-		if dataset.SqlStatement == appconfig.STATEMENT_PREPARED {
-			data = append(data, values...)
-		}
-		count++
-		rowsCount++
-
-		if count == dataset.Rows {
-			if err := writeBufferToDb(&db, buffer, data); err != nil {
-				Log.Error("Error writing buffer to database:", err)
-				return err
-			}
-			buffer = nil
-			data = make([]any, 0)
-			count = 0
-			Log.Info("Rows processed to table", dataset.Table, "...:", rowsCount)
-		}
+	processor := app.RowsProcessor{
+		Processor:     &app.DbProcessor{AppDb: &db, Table: dataset.Table},
+		DataReader:    dataReader,
+		Log:           &Log,
+		InsertCommand: dataset.InsertCommand,
+		Table:         dataset.Table,
+		Rows:          dataset.Rows,
+		SqlStatement:  dataset.SqlStatement,
 	}
 
-	// Handle any remaining rows
-	if len(buffer) > 0 {
-		if err := writeBufferToDb(&db, buffer, data); err != nil {
-			Log.Error("Error writing buffer to database:", err)
-			return err
-		}
+	err = processor.Process()
+	if err != nil {
+		Log.Error("Error processing rows:", err)
+		return err
 	}
 
 	if dataset.OnInsertSessionEnd != "" {
@@ -238,14 +202,12 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 		}
 	}
 
-	Log.Ok("Rows processed to table", dataset.Table, ":", rowsCount)
-
 	return nil
 }
 
 func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *appdb.DataReader {
 	return &appdb.DataReader{
-		AppDb: appdb.AppDb{
+		AppDb: &appdb.AppDb{
 			Driver: dbConf.Driver,
 			Dsn:    dbConf.DSN,
 		},
@@ -265,101 +227,21 @@ func processRowsAndWriteToFile(src appconfig.DBConfig, file *os.File, dataset ap
 	}
 	defer dataReader.Close()
 
-	var buffer []string
-	count := 0
-	rowsCount := 0
-	columns := make([]string, 0)
-
-	for {
-		next, err := dataReader.Next()
-		if err != nil {
-			Log.Error("Error reading next row:", err)
-			return err
-		}
-
-		if !next {
-			break
-		}
-
-		if rowsCount == 0 {
-			columns = dataReader.WrappedColumns()
-		}
-
-		values, err := dataReader.Scan()
-		if err != nil {
-			Log.Error("Error scanning row:", err)
-			return err
-		}
-
-		insertStatement := getInsertStatement(values, dataset)
-		buffer = appendRowToBuffer(buffer, dataset, columns, insertStatement, count)
-		count++
-		rowsCount++
-
-		if count == dataset.Rows {
-			if err := writeBufferToFile(file, buffer); err != nil {
-				Log.Error("Error writing buffer to file:", err)
-				return err
-			}
-			buffer = nil
-			count = 0
-			Log.Info("Rows processed to file", file.Name(), "...:", rowsCount)
-		}
+	processor := app.RowsProcessor{
+		Processor:     &app.FileProcessor{File: file},
+		DataReader:    dataReader,
+		Log:           &Log,
+		InsertCommand: dataset.InsertCommand,
+		Table:         dataset.Table,
+		Rows:          dataset.Rows,
+		SqlStatement:  dataset.SqlStatement,
 	}
 
-	if len(buffer) > 0 {
-		if err := writeBufferToFile(file, buffer); err != nil {
-			Log.Error("Error writing buffer to file:", err)
-			return err
-		}
-	}
-
-	Log.Ok("Rows processed to file", file.Name(), ":", rowsCount)
-	return nil
-}
-
-func appendRowToBuffer(buffer []string, dataset appconfig.Dataset, columns []string, insertStatement string, count int) []string {
-	if count == 0 {
-		buffer = appendInitialInsert(buffer, dataset.InsertCommand, dataset.Table, columns, insertStatement)
-	} else {
-		buffer = append(buffer, fmt.Sprintf(", (%s)", insertStatement))
-	}
-	return buffer
-}
-
-func getInsertStatement(values []any, dataset appconfig.Dataset) string {
-	if dataset.SqlStatement == appconfig.STATEMENT_PREPARED {
-		return Formatter.BuildInsertPlaceholders(len(values))
-	}
-	return Formatter.FormatRowValues(values)
-}
-
-func appendInitialInsert(buffer []string, command string, table string, columns []string, insertStatement string) []string {
-	columnsStr := strings.Join(columns, ", ")
-	insertCommand := fmt.Sprintf("%s %s (%s) VALUES", command, table, columnsStr)
-	buffer = append(buffer, insertCommand)
-	buffer = append(buffer, fmt.Sprintf("(%s)", insertStatement))
-	return buffer
-}
-
-func writeBufferToFile(file *os.File, buffer []string) error {
-	buffer = append(buffer, ";")
-	for _, stmt := range buffer {
-		_, err := file.WriteString(stmt + "\n")
-		if err != nil {
-			Log.Error("Error writing to file:", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func writeBufferToDb(db *appdb.AppDb, buffer []string, data []any) error {
-	buffer = append(buffer, ";")
-	_, err := db.Exec(strings.Join(buffer, ""), data...)
+	err = processor.Process()
 	if err != nil {
-		Log.Error("Error writing to database:", err)
+		Log.Error("Error processing rows:", err)
 		return err
 	}
+
 	return nil
 }
