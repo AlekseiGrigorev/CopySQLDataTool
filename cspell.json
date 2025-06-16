@@ -50,7 +50,8 @@
         "smartcallback",
         "smartis",
         "stretchr",
-        "summs"
+        "summs",
+        "unmarshals"
     ],
     "ignoreWords": [],
     "import": []

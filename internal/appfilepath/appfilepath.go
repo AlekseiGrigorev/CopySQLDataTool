@@ -10,10 +10,16 @@ import (
 	"time"
 )
 
+// AppFilePath represents a file path with additional metadata and utility methods for file path manipulation.
 type AppFilePath struct {
+	// Path to the file.
 	Path string
 }
 
+// Returns the file path with the current date and time inserted
+// into the file name. The date and time are formatted as "YYYYMMDD_HHMMSS".
+// For example, if the original path is "/path/to/file.txt", the returned path
+// would be "/path/to/file_20221231_000000.txt".
 func (fp *AppFilePath) GetWithDateTime() string {
 	dir, fileName := filepath.Split(fp.Path)
 	ext := filepath.Ext(fileName)

@@ -22,23 +22,9 @@ var Config appconfig.Config
 var Log applog.AppLog
 var Formatter appdb.Formatter
 
-func prepareLogFile(logFile string) (*os.File, error) {
-	if logFile == "" {
-		return nil, nil
-	}
-
-	fp := appfilepath.AppFilePath{
-		Path: logFile,
-	}
-	logFile = fp.GetWithDateTime()
-	file, err := os.Create(logFile)
-	if err != nil {
-		Log.Error("Error creating file:", err)
-		return nil, err
-	}
-	return file, nil
-}
-
+// Main is the main entry point of the application.
+// It reads the configuration file and processes each dataset by calling processDataset.
+// The function logs the start and end of the program, config file name, and any errors encountered.
 func main() {
 	Log = applog.AppLog{}
 
@@ -68,6 +54,30 @@ func main() {
 	Log.Ok("Program ended")
 }
 
+// prepareLogFile prepares a log file by creating a new file with the current date and time in its name.
+// If the file name is empty, the function returns nil and no error.
+// Otherwise, it creates a new file and returns the file object and an error.
+func prepareLogFile(logFile string) (*os.File, error) {
+	if logFile == "" {
+		return nil, nil
+	}
+
+	fp := appfilepath.AppFilePath{
+		Path: logFile,
+	}
+	logFile = fp.GetWithDateTime()
+	file, err := os.Create(logFile)
+	if err != nil {
+		Log.Error("Error creating file:", err)
+		return nil, err
+	}
+	return file, nil
+}
+
+// loadConfig initializes the global Config variable by loading and validating the configuration
+// from the provided file path. It logs any errors encountered during the loading or validation
+// process. If no datasets are found in the configuration, it logs an error and returns an error.
+// Returns an error if the configuration cannot be loaded, validated, or contains no datasets.
 func loadConfig(configPath string) error {
 	Config = appconfig.Config{}
 	err := Config.LoadConfig(configPath)
@@ -90,6 +100,11 @@ func loadConfig(configPath string) error {
 	return nil
 }
 
+// processDataset processes a single dataset by first checking its enabled status,
+// table name, and query validity. If the dataset is disabled, has an empty table name,
+// or an empty query, it logs a warning or error and returns without processing.
+// If valid, it logs the start of processing, calls the process function to handle
+// the dataset, and logs the result of the processing.
 func processDataset(dataset appconfig.Dataset) {
 	if !dataset.Enabled {
 		Log.Warn("Skipping disabled table:", dataset.Table)
@@ -112,6 +127,12 @@ func processDataset(dataset appconfig.Dataset) {
 	}
 }
 
+// process handles the data processing for a given dataset by checking its configuration
+// and performing the necessary actions based on the dataset's settings. It supports
+// writing data to a file or a database, or both, depending on the dataset's CopyTo
+// configuration. The function initializes the data reader, manages file creation,
+// connects to the destination database, and executes the data processing logic, while
+// logging the progress and any errors encountered. Returns an error if any step fails.
 func process(src appconfig.DBConfig, dst appconfig.DBConfig, dataset appconfig.Dataset) error {
 	if dataset.CopyToFileEnabled() {
 		Log.Info("Write to file started for table:", dataset.Table)
@@ -144,10 +165,54 @@ func process(src appconfig.DBConfig, dst appconfig.DBConfig, dataset appconfig.D
 	return nil
 }
 
+// createOutputFile creates a new file with the given table name and ".sql" extension
+// to write the output SQL statements. It returns the opened file and an error if
+// any.
 func createOutputFile(table string) (*os.File, error) {
 	return os.Create(table + ".sql")
 }
 
+// processRowsAndWriteToFile processes rows from a source database and writes them to a specified file.
+// It initializes a data reader using the provided database configuration and dataset information,
+// and uses a RowsProcessor to manage the data transfer. The function handles opening and closing
+// the data reader, logging errors, and ensuring the proper execution of the data processing logic.
+// It returns an error if any step in the process fails, such as opening the data reader or processing rows.
+func processRowsAndWriteToFile(src appconfig.DBConfig, file *os.File, dataset appconfig.Dataset) error {
+	dataReader := createDataReader(src, dataset)
+	err := dataReader.Open()
+	if err != nil {
+		Log.Error("Error opening data reader:", err)
+		return err
+	}
+	defer dataReader.Close()
+
+	processor := app.RowsProcessor{
+		Processor:  &app.FileProcessor{File: file},
+		DataReader: dataReader,
+		Log:        &Log,
+		Dataset: app.Dataset{
+			InsertCommand:    dataset.InsertCommand,
+			TableName:        dataset.Table,
+			RowsPerCommand:   dataset.Rows,
+			SqlStatementType: dataset.SqlStatement,
+		},
+	}
+
+	err = processor.Process()
+	if err != nil {
+		Log.Error("Error processing rows:", err)
+		return err
+	}
+
+	return nil
+}
+
+// processRowsAndWriteToDb processes rows from a source database and writes them to a destination database.
+// It initializes a data reader using the provided source database configuration and dataset information,
+// connects to the destination database using the provided configuration, and uses a RowsProcessor to manage
+// the data transfer. The function handles opening and closing the data reader, connecting to the destination database,
+// logging errors, and ensuring the proper execution of the data processing logic. It returns an error if any step in
+// the process fails, such as opening the data reader, connecting to the destination database, or processing rows.
 func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dataset appconfig.Dataset) error {
 	dataReader := createDataReader(src, dataset)
 	dataReader.Open()
@@ -179,13 +244,15 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 	}
 
 	processor := app.RowsProcessor{
-		Processor:     &app.DbProcessor{AppDb: &db, Table: dataset.Table},
-		DataReader:    dataReader,
-		Log:           &Log,
-		InsertCommand: dataset.InsertCommand,
-		Table:         dataset.Table,
-		Rows:          dataset.Rows,
-		SqlStatement:  dataset.SqlStatement,
+		Processor:  &app.DbProcessor{AppDb: &db, TableName: dataset.Table},
+		DataReader: dataReader,
+		Log:        &Log,
+		Dataset: app.Dataset{
+			InsertCommand:    dataset.InsertCommand,
+			TableName:        dataset.Table,
+			RowsPerCommand:   dataset.Rows,
+			SqlStatementType: dataset.SqlStatement,
+		},
 	}
 
 	err = processor.Process()
@@ -205,6 +272,10 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 	return nil
 }
 
+// createDataReader creates a new DataReader instance using the provided database
+// configuration and dataset information. It configures the DataReader with the
+// database connection details, query, query type, execution time, and initial ID.
+// The function returns a pointer to the newly created DataReader instance.
 func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *appdb.DataReader {
 	return &appdb.DataReader{
 		AppDb: &appdb.AppDb{
@@ -216,32 +287,4 @@ func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *app
 		ExecutionTime: dataset.ExecutionTime,
 		InitialId:     dataset.InitialId,
 	}
-}
-
-func processRowsAndWriteToFile(src appconfig.DBConfig, file *os.File, dataset appconfig.Dataset) error {
-	dataReader := createDataReader(src, dataset)
-	err := dataReader.Open()
-	if err != nil {
-		Log.Error("Error opening data reader:", err)
-		return err
-	}
-	defer dataReader.Close()
-
-	processor := app.RowsProcessor{
-		Processor:     &app.FileProcessor{File: file},
-		DataReader:    dataReader,
-		Log:           &Log,
-		InsertCommand: dataset.InsertCommand,
-		Table:         dataset.Table,
-		Rows:          dataset.Rows,
-		SqlStatement:  dataset.SqlStatement,
-	}
-
-	err = processor.Process()
-	if err != nil {
-		Log.Error("Error processing rows:", err)
-		return err
-	}
-
-	return nil
 }

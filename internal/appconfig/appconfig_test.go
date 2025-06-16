@@ -1,3 +1,6 @@
+// Description: This package provides configuration management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package appconfig
 
 import (
@@ -35,6 +38,8 @@ const (
 	}`
 )
 
+// TestEmptyTable verifies that if the table name is empty in the config file,
+// but a query is provided, the table name is extracted from the query.
 func TestEmptyTable(t *testing.T) {
 	config := Config{}
 	err := config.LoadConfigFromString(configJSON)

@@ -1,3 +1,6 @@
+// Description: This package provides management features for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package app
 
 import (
@@ -8,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestWriteFile tests the Write method of the FileProcessor type.
+// It creates a file, writes two strings to it, and checks that the
+// message returned by GetProcessedMsg contains the name of the file.
 func TestWriteFile(t *testing.T) {
 	filename := "test.txt"
 	file, err := os.Create(filename)

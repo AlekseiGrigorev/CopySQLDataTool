@@ -7,7 +7,10 @@ import (
 	"regexp"
 )
 
+// SqlHelper represents a helper struct for managing SQL queries.
+// It contains the SQL query string that can be manipulated or analyzed.
 type SqlHelper struct {
+	// Sql is the SQL query string
 	Sql string
 }
 

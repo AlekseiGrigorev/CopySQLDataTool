@@ -72,6 +72,9 @@ type Dataset struct {
 	OnInsertSessionEnd   string `json:"on_insert_session_end"`
 }
 
+// Validate checks the configuration for required fields and returns an error if any are missing.
+// It verifies that the source and destination database drivers and DSNs are not empty.
+// If any validation rules are violated, it returns an error with a message for each issue found.
 func (config *Config) Validate() error {
 	messages := []string{}
 	if config.Config.Source.Driver == "" {
@@ -94,6 +97,9 @@ func (config *Config) Validate() error {
 	return nil
 }
 
+// LoadConfig reads the configuration from a file and unmarshals it into the Config object.
+// It verifies that the source and destination database drivers and DSNs are not empty.
+// If any config file rules are violated, it returns an error with a message for each issue found.
 func (config *Config) LoadConfig(path string) error {
 	// Open the config file
 	file, err := os.Open(path)
@@ -114,6 +120,9 @@ func (config *Config) LoadConfig(path string) error {
 	return nil
 }
 
+// LoadConfigFromString reads the configuration from a string and unmarshals it into the Config object.
+// It verifies that the source and destination database drivers and DSNs are not empty.
+// If any config file rules are violated, it returns an error with a message for each issue found.
 func (config *Config) LoadConfigFromString(str string) error {
 	// Create a decoder and decode directly into the Config struct
 	decoder := json.NewDecoder(strings.NewReader(str))
@@ -127,12 +136,19 @@ func (config *Config) LoadConfigFromString(str string) error {
 	return nil
 }
 
+// fillDatasets iterates over each dataset in the Config object and fills in
+// any missing configuration values using default values from the DefaultDataset.
+// It ensures that each dataset has the necessary fields populated for further processing.
 func (config *Config) fillDatasets() {
 	for i := range config.Datasets {
 		config.fillDataset(i)
 	}
 }
 
+// fillDataset fills in missing configuration values for a specific dataset using default values.
+// If the dataset's table name is empty but a query is provided, it extracts the table name from the query.
+// It assigns default values for insert command, number of rows, copy destination, query type,
+// execution time, and SQL statement type if they are not already set for the dataset.
 func (config *Config) fillDataset(i int) {
 	if config.Datasets[i].Table == "" && config.Datasets[i].Query != "" {
 		sqlHelper := appdb.SqlHelper{
@@ -160,10 +176,12 @@ func (config *Config) fillDataset(i int) {
 	}
 }
 
+// CopyToDbEnabled returns true if the dataset is set to copy data to a database, false otherwise.
 func (ds *Dataset) CopyToDbEnabled() bool {
 	return strings.Contains(ds.CopyTo, COPY_TO_DB)
 }
 
+// CopyToFileEnabled returns true if the dataset is set to copy data to a file, false otherwise.
 func (ds *Dataset) CopyToFileEnabled() bool {
 	return strings.Contains(ds.CopyTo, COPY_TO_FILE)
 }

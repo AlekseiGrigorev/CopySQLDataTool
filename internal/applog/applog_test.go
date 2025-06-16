@@ -1,3 +1,6 @@
+// Description: This package provides log management for the application.
+// Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
+// Copyright (c) 2025 Aleksei Grigorev
 package applog
 
 import (
@@ -9,9 +12,19 @@ import (
 )
 
 const (
+	FILE     = "test.log"
 	TEST_MSG = "Test message"
 )
 
+// Removes the test file if it exists after a test is run.
+func cleanup() {
+	if _, err := os.Stat(FILE); err == nil {
+		os.Remove(FILE)
+	}
+}
+
+// Tests the Info method of the AppLog type.
+// It tests that the formatted string contains the provided message.
 func TestInfo(t *testing.T) {
 	log := AppLog{}
 	s := log.String(TEST_MSG)
@@ -19,8 +32,12 @@ func TestInfo(t *testing.T) {
 	assert.Contains(t, s, TEST_MSG)
 }
 
+// Tests write to file of the AppLog type.
+// It tests that the method writes the formatted string to the file, and
+// that the string contains the provided message.
 func TestWriteToFile(t *testing.T) {
-	file, err := os.Create("test.log")
+	t.Cleanup(cleanup)
+	file, err := os.Create(FILE)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		return
