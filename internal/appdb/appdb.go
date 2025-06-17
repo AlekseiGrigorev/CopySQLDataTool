@@ -73,12 +73,11 @@ func (appdb *AppDb) IsOpen() bool {
 // Exec executes a SQL statement with the given data on the database connection.
 // The method returns a Result instance if the execution is successful, otherwise it returns an error.
 // The Result instance provides information about the number of affected rows and the last inserted ID.
-func (appdb *AppDb) Exec(sqlCommand string, args ...any) (result sql.Result, err error) {
-	result, err = appdb.db.Exec(sqlCommand, args...)
+func (appdb *AppDb) Exec(sqlCommand string, args ...any) (sql.Result, error) {
+	result, err := appdb.db.Exec(sqlCommand, args...)
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
@@ -89,13 +88,13 @@ func (appdb *AppDb) Exec(sqlCommand string, args ...any) (result sql.Result, err
 // using the Exec method. If any statement results in an error, it returns
 // the error. Otherwise it returns nil.
 func (appdb *AppDb) ExecMultiple(sqlCommands string) error {
-	commands := strings.SplitSeq(sqlCommands, ";")
-	for command := range commands {
+	commands := strings.Split(sqlCommands, ";")
+	for _, command := range commands {
 		trimmedCommand := strings.TrimSpace(command)
 		if trimmedCommand == "" {
 			continue
 		}
-		_, err := appdb.db.Exec(command)
+		_, err := appdb.db.Exec(trimmedCommand)
 		if err != nil {
 			return err
 		}
@@ -109,18 +108,17 @@ func (appdb *AppDb) ExecMultiple(sqlCommands string) error {
 // executes it with the given arguments using the statement's Exec method,
 // and returns the result if the execution is successful, otherwise it returns an error.
 // The result is a sql.Result instance that provides information about the number of affected rows and the last inserted ID.
-func (appdb *AppDb) PrepareExec(sqlCommand string, args ...any) (result sql.Result, err error) {
+func (appdb *AppDb) PrepareExec(sqlCommand string, args ...any) (sql.Result, error) {
 	stmt, err := appdb.db.Prepare(sqlCommand)
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
 
-	result, err = stmt.Exec(args...)
+	result, err := stmt.Exec(args...)
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
@@ -128,7 +126,7 @@ func (appdb *AppDb) PrepareExec(sqlCommand string, args ...any) (result sql.Resu
 // and returns the first row of the result set. If the query returns no rows, it
 // returns a nil *sql.Row and a nil error. Otherwise it returns a *sql.Row
 // instance that can be used to retrieve the columns of the row, and a nil error.
-func (appdb *AppDb) QueryRow(sqlCommand string, args ...any) (result *sql.Row, err error) {
+func (appdb *AppDb) QueryRow(sqlCommand string, args ...any) (*sql.Row, error) {
 	return appdb.db.QueryRow(sqlCommand, args...), nil
 }
 
@@ -137,7 +135,7 @@ func (appdb *AppDb) QueryRow(sqlCommand string, args ...any) (result *sql.Row, e
 // *sql.Rows and a nil error. Otherwise it returns a *sql.Rows instance that
 // can be used to retrieve the columns and rows of the result set, and a nil
 // error.
-func (appdb *AppDb) Query(sqlCommand string, args ...any) (result *sql.Rows, err error) {
+func (appdb *AppDb) Query(sqlCommand string, args ...any) (*sql.Rows, error) {
 	return appdb.db.Query(sqlCommand, args...)
 }
 
@@ -146,13 +144,10 @@ func (appdb *AppDb) Query(sqlCommand string, args ...any) (result *sql.Rows, err
 // If the query returns no rows, it returns a nil value and a nil error.
 // If the query returns multiple rows or columns, it only returns the first column of the first row.
 // If the query returns an error, it returns a nil value and the error.
-func (appdb *AppDb) GetScalar(sqlCommand string, args ...any) (result any, err error) {
+func (appdb *AppDb) GetScalar(sqlCommand string, args ...any) (any, error) {
 	var value any
-	res, err := appdb.QueryRow(sqlCommand, args...)
-	if err != nil {
-		return nil, err
-	}
-	err = res.Scan(&value)
+	res := appdb.db.QueryRow(sqlCommand, args...)
+	err := res.Scan(&value)
 	if err != nil {
 		return nil, err
 	}
