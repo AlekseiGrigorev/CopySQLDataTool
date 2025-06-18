@@ -49,7 +49,7 @@ func (rp *RowsProcessor) Process() error {
 	for {
 		next, err := rp.processRow()
 		if err != nil {
-			return (err)
+			return err
 		}
 		if !next {
 			break
@@ -106,7 +106,7 @@ func (rp *RowsProcessor) processRow() (bool, error) {
 
 	insertStatement := rp.formatter.GetInsertStatement(rp.Dataset.SqlStatementType, values)
 	rp.appendRowToBuffer(insertStatement)
-	if rp.Dataset.SqlStatementType == appdb.STATEMENT_PREPARED {
+	if rp.Dataset.SqlStatementType == STATEMENT_TYPE_PREPARED {
 		rp.data = append(rp.data, values...)
 	}
 	rp.count++

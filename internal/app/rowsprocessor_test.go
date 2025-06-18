@@ -47,7 +47,7 @@ func prepareProcessor(processor RowsProcessorInterface, rows int) *RowsProcessor
 		DataReader: &appdb.DataReader{
 			AppDb: &db,
 			Query: SELECT_TBL_SQL,
-			Type:  appdb.TYPE_SIMPLE,
+			Type:  appdb.QUERY_TYPE_SIMPLE,
 			Limit: rows,
 		},
 		Log: nil,
@@ -55,7 +55,7 @@ func prepareProcessor(processor RowsProcessorInterface, rows int) *RowsProcessor
 			RowsPerCommand:   rows,
 			InsertCommand:    INSERT_INTO,
 			TableName:        TBL_NAME_2,
-			SqlStatementType: appdb.STATEMENT_RAW,
+			SqlStatementType: STATEMENT_TYPE_RAW,
 		},
 	}
 
@@ -137,7 +137,7 @@ func TestWriteFileRp2(t *testing.T) {
 // using the STATEMENT_RAW SqlStatementType.
 func TestWriteDbRp(t *testing.T) {
 	p := prepareProcessor(&DbProcessor{AppDb: prepareDbRp(), TableName: TBL_NAME_2}, 2)
-	p.Dataset.SqlStatementType = appdb.STATEMENT_RAW
+	p.Dataset.SqlStatementType = STATEMENT_TYPE_RAW
 	err := p.Process()
 	if err != nil {
 		fmt.Println(err)
@@ -152,7 +152,7 @@ func TestWriteDbRp(t *testing.T) {
 // using the STATEMENT_PREPARED SqlStatementType.
 func TestWriteDbRpPrepared(t *testing.T) {
 	p := prepareProcessor(&DbProcessor{AppDb: prepareDbRp(), TableName: TBL_NAME_2}, 2)
-	p.Dataset.SqlStatementType = appdb.STATEMENT_PREPARED
+	p.Dataset.SqlStatementType = STATEMENT_TYPE_PREPARED
 	err := p.Process()
 	if err != nil {
 		fmt.Println(err)

@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	TYPE_UNDEFINED     = ""
-	TYPE_SIMPLE        = "simple"
-	TYPE_LIMIT_OFFSET  = "limitoffset"
-	TYPE_ORDERBYID     = "orderbyid"
-	STATEMENT_PREPARED = "prepared"
-	STATEMENT_RAW      = "raw"
+	QUERY_TYPE_UNDEFINED    = ""
+	QUERY_TYPE_SIMPLE       = "simple"
+	QUERY_TYPE_LIMIT_OFFSET = "limitoffset"
+	QUERY_TYPE_ORDERBYID    = "orderbyid"
+	STATEMENT_TYPE_PREPARED = "prepared"
+	STATEMENT_TYPE_RAW      = "raw"
 )
 
 // AppDb represents a database connection configuration and handle.

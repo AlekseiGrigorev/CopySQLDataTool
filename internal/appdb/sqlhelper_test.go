@@ -10,16 +10,17 @@ import (
 )
 
 const (
-	DB_TBL_NAME = "db.table"
+	TEST_DB_TBL_NAME             = "db.table"
+	TEST_SELECT_FROM_DB_TBL_NAME = "SELECT * FROM " + TEST_DB_TBL_NAME
 )
 
 // TestGetFromTableName verifies that the GetFromTableName method extracts the table name correctly
 // when the SQL query does not contain a WHERE clause and semicolon at the end.
 func TestGetFromTableName(t *testing.T) {
 	helper := SqlHelper{
-		Sql: "SELECT * FROM db.table",
+		Sql: TEST_SELECT_FROM_DB_TBL_NAME,
 	}
-	expected := DB_TBL_NAME
+	expected := TEST_DB_TBL_NAME
 	actual := helper.GetFromTableName()
 	assert.Equal(t, expected, actual)
 }
@@ -28,9 +29,9 @@ func TestGetFromTableName(t *testing.T) {
 // correctly from a SQL query that ends with a semicolon.
 func TestGetFromTableNameWithSemicolon(t *testing.T) {
 	helper := SqlHelper{
-		Sql: "SELECT * FROM db.table;",
+		Sql: TEST_SELECT_FROM_DB_TBL_NAME + ";",
 	}
-	expected := DB_TBL_NAME
+	expected := TEST_DB_TBL_NAME
 	actual := helper.GetFromTableName()
 	assert.Equal(t, expected, actual)
 }
@@ -39,9 +40,9 @@ func TestGetFromTableNameWithSemicolon(t *testing.T) {
 // even if the SQL query contains a WHERE clause with a space after the table name.
 func TestGetFromTableNameSpace(t *testing.T) {
 	helper := SqlHelper{
-		Sql: "SELECT * FROM db.table WHERE id = 1;",
+		Sql: TEST_SELECT_FROM_DB_TBL_NAME + " WHERE id = 1;",
 	}
-	expected := DB_TBL_NAME
+	expected := TEST_DB_TBL_NAME
 	actual := helper.GetFromTableName()
 	assert.Equal(t, expected, actual)
 }

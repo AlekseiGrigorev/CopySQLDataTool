@@ -1,4 +1,4 @@
-// Description: This package provides db management for the application.
+// Description: This package provides database management for the application.
 // Developer: Aleksei Grigorev <https://github.com/AlekseiGrigorev>, <aleksvgrig@gmail.com>
 // Copyright (c) 2025 Aleksei Grigorev
 package appdb

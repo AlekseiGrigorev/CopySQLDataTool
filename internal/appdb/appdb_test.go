@@ -9,11 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const DSN_AD = "root:root@tcp(127.0.0.1:3306)/test"
-const TBL_NAME_AD = "test_table"
-const TRUNC_TBL_SQL_AD = "TRUNCATE TABLE " + TBL_NAME + ";"
-const INSERT_INTO_SQL_AD = "INSERT INTO " + TBL_NAME + " VALUES (1), (2), (3);"
-const SELECT_FROM_SQL_AD = "SELECT * FROM " + TBL_NAME + ";"
+const (
+	TEST_DSN                   = "root:root@tcp(127.0.0.1:3306)/test"
+	TEST_TBL_NAME              = "test_table"
+	TEST_TRUNC_TBL_SQL         = "TRUNCATE TABLE " + TEST_TBL_NAME + ";"
+	TEST_INSERT_INTO_SQL       = "INSERT INTO " + TEST_TBL_NAME + " VALUES (?), (?), (?);"
+	TEST_INSERT_INTO_RAW_SQL   = "INSERT INTO " + TEST_TBL_NAME + " VALUES (1), (2), (3);"
+	TEST_SELECT_FROM_SQL       = "SELECT * FROM " + TEST_TBL_NAME + ";"
+	TEST_SELECT_FROM_LIMIT_SQL = "SELECT * FROM " + TEST_TBL_NAME + " LIMIT 1;"
+	TEST_SELECT_FROM_COUNT_SQL = "SELECT COUNT(*) FROM " + TEST_TBL_NAME + ";"
+)
 
 // prepareDbAd initializes an AppDb instance with MySQL driver and DSN_AD.
 // It opens the database connection and returns the AppDb instance.
@@ -21,7 +26,7 @@ const SELECT_FROM_SQL_AD = "SELECT * FROM " + TBL_NAME + ";"
 func prepareDbAd(t *testing.T) AppDb {
 	ad := AppDb{
 		Driver: "mysql",
-		Dsn:    DSN_AD,
+		Dsn:    TEST_DSN,
 	}
 	err := ad.Open()
 	if err != nil {
@@ -35,7 +40,7 @@ func prepareDbAd(t *testing.T) AppDb {
 // if the insertion fails.
 func prepareDataAd(t *testing.T, ad AppDb) {
 	truncateDataAd(t, ad)
-	_, err := ad.Exec(INSERT_INTO_SQL_AD)
+	_, err := ad.Exec(TEST_INSERT_INTO_RAW_SQL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -44,7 +49,7 @@ func prepareDataAd(t *testing.T, ad AppDb) {
 // truncateDataAd truncates the table given by TBL_NAME_AD in the database connection provided by AppDb ad.
 // It logs an error on the testing instance if the truncation fails.
 func truncateDataAd(t *testing.T, ad AppDb) {
-	_, err := ad.Exec(TRUNC_TBL_SQL_AD)
+	_, err := ad.Exec(TEST_TRUNC_TBL_SQL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -85,7 +90,7 @@ func TestExec(t *testing.T) {
 func TestExecMultiple(t *testing.T) {
 	ad := prepareDbAd(t)
 	prepareDataAd(t, ad)
-	sql := SELECT_FROM_SQL_AD + " " + SELECT_FROM_SQL_AD
+	sql := TEST_SELECT_FROM_SQL + " " + TEST_SELECT_FROM_SQL
 	err := ad.ExecMultiple(sql)
 	assert.Nil(t, err)
 }
@@ -97,7 +102,7 @@ func TestExecMultiple(t *testing.T) {
 func TestPrepareExec(t *testing.T) {
 	ad := prepareDbAd(t)
 	truncateDataAd(t, ad)
-	sql := "INSERT INTO " + TBL_NAME + " VALUES (?), (?), (?);"
+	sql := TEST_INSERT_INTO_SQL
 	res, err := ad.PrepareExec(sql, 1, 2, 3)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
@@ -110,7 +115,7 @@ func TestPrepareExec(t *testing.T) {
 func TestQuery(t *testing.T) {
 	ad := prepareDbAd(t)
 	prepareDataAd(t, ad)
-	res, err := ad.Query(SELECT_FROM_SQL_AD)
+	res, err := ad.Query(TEST_SELECT_FROM_SQL)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 }
@@ -122,7 +127,7 @@ func TestQuery(t *testing.T) {
 func TestQueryRow(t *testing.T) {
 	ad := prepareDbAd(t)
 	prepareDataAd(t, ad)
-	res, err := ad.QueryRow("SELECT * FROM " + TBL_NAME + " LIMIT 1;")
+	res, err := ad.QueryRow(TEST_SELECT_FROM_LIMIT_SQL)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 }
@@ -133,7 +138,7 @@ func TestQueryRow(t *testing.T) {
 // that the result is not nil, indicating successful execution.
 func TestGetScalar(t *testing.T) {
 	ad := prepareDbAd(t)
-	res, err := ad.GetScalar("SELECT COUNT(*) FROM " + TBL_NAME)
+	res, err := ad.GetScalar(TEST_SELECT_FROM_COUNT_SQL)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 }

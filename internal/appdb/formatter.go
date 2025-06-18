@@ -38,7 +38,7 @@ func (f *Formatter) GetInsertCommand(command string, table string, columns []str
 // If the statement type is STATEMENT_PREPARED, it builds placeholders for the number of values provided.
 // Otherwise, it formats the values according to the database type and returns the formatted string.
 func (f *Formatter) GetInsertStatement(statement string, values []any) string {
-	if statement == STATEMENT_PREPARED {
+	if statement == STATEMENT_TYPE_PREPARED {
 		return f.BuildInsertPlaceholders(len(values))
 	}
 	return f.FormatRowValues(values)
@@ -55,7 +55,7 @@ func (f *Formatter) FormatValue(val any) string {
 	case []byte:
 		return fmt.Sprintf("'%s'", strings.ReplaceAll(strings.ReplaceAll(string(v), "'", "''"), "\\", "\\\\"))
 	case string:
-		return fmt.Sprintf("'%s'", strings.ReplaceAll(strings.ReplaceAll(string(v), "'", "''"), "\\", "\\\\"))
+		return fmt.Sprintf("'%s'", strings.ReplaceAll(strings.ReplaceAll(v, "'", "''"), "\\", "\\\\"))
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprintf("%d", v)
 	case float32:

@@ -45,9 +45,9 @@ func (dataReader *DataReader) Close() {
 	dataReader.startTime = time.Time{}
 	dataReader.prevQuery = ""
 	dataReader.lastQuery = ""
-	dataReader.columns = make([]string, 0)
-	dataReader.valuePtrs = make([]any, 0)
-	dataReader.values = make([]any, 0)
+	dataReader.columns = nil
+	dataReader.valuePtrs = nil
+	dataReader.values = nil
 	dataReader.AppDb.Close()
 }
 
@@ -203,7 +203,7 @@ func (dataReader *DataReader) Next() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		// Защита от бесконечного цикла если запрос не соответствует указанному типу запроса
+		// Protection against infinite loop if the query does not match the specified query type
 		if dataReader.lastQuery != dataReader.prevQuery {
 			hasNext = dataReader.rows.Next()
 		}
