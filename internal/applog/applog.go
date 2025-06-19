@@ -6,6 +6,7 @@ package applog
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -21,6 +22,11 @@ type AppLog struct {
 	// File to which log messages will be written.
 	// If nil, no file output will occur.
 	File *os.File
+	// Id is a unique identifier for the log entry.
+	Id string
+	// Mutex is used to synchronize color output.
+	// color is non-thread safe, so we need to synchronize it.
+	Mutex *sync.Mutex
 	// hasWriteFileError tracks whether any write errors have occurred during file writing.
 	// If true, subsequent attempts to write to the file will be skipped.
 	hasWriteFileError bool
@@ -34,8 +40,12 @@ func (appLog *AppLog) getDate() string {
 // insertDate prepends the current date and time, followed by a hyphen,
 // to the provided arguments. It returns the modified argument list
 // which includes the date and time as the first element.
-func (appLog *AppLog) insertDate(args ...any) []any {
-	args = append([]any{appLog.getDate(), "-"}, args...)
+func (appLog *AppLog) insertDateAndId(args ...any) []any {
+	if appLog.Id != "" {
+		args = append([]any{appLog.getDate(), "-", appLog.Id, "-"}, args...)
+	} else {
+		args = append([]any{appLog.getDate(), "-"}, args...)
+	}
 	return args
 }
 
@@ -49,8 +59,8 @@ func (appLog *AppLog) writeToFile(str string) (int int, err error) {
 	}
 	res, err := appLog.File.WriteString(str)
 	if err != nil {
-		appLog.Error("Error writing to log file:", err)
 		appLog.hasWriteFileError = true
+		appLog.Error("Error writing to log file:", err)
 	}
 	return res, err
 }
@@ -58,7 +68,7 @@ func (appLog *AppLog) writeToFile(str string) (int int, err error) {
 // String formats the provided arguments by prepending the current date and time,
 // followed by a hyphen, and returns the formatted string.
 func (appLog *AppLog) String(args ...any) string {
-	return fmt.Sprintln(appLog.insertDate(args...)...)
+	return fmt.Sprintln(appLog.insertDateAndId(args...)...)
 }
 
 // Info logs the given arguments as informational messages by prepending "[Info]" to the
@@ -67,8 +77,7 @@ func (appLog *AppLog) String(args ...any) string {
 func (appLog *AppLog) Info(args ...any) *AppLog {
 	args = append([]any{"[Info]"}, args...)
 	str := appLog.String(args...)
-	color.NoColor = false
-	color.Blue(str)
+	appLog.coloredLog(str, color.New(color.FgBlue))
 	appLog.writeToFile(str)
 	return appLog
 }
@@ -80,8 +89,7 @@ func (appLog *AppLog) Info(args ...any) *AppLog {
 func (appLog *AppLog) Ok(args ...any) *AppLog {
 	args = append([]any{"[Ok]"}, args...)
 	str := appLog.String(args...)
-	color.NoColor = false
-	color.Green(str)
+	appLog.coloredLog(str, color.New(color.FgGreen))
 	appLog.writeToFile(str)
 	return appLog
 }
@@ -93,8 +101,7 @@ func (appLog *AppLog) Ok(args ...any) *AppLog {
 func (appLog *AppLog) Warn(args ...any) *AppLog {
 	args = append([]any{"[Warn]"}, args...)
 	str := appLog.String(args...)
-	color.NoColor = false
-	color.Yellow(str)
+	appLog.coloredLog(str, color.New(color.FgYellow))
 	appLog.writeToFile(str)
 	return appLog
 }
@@ -106,8 +113,24 @@ func (appLog *AppLog) Warn(args ...any) *AppLog {
 func (appLog *AppLog) Error(args ...any) *AppLog {
 	args = append([]any{"[Error]"}, args...)
 	str := appLog.String(args...)
-	color.NoColor = false
-	color.Red(str)
+	appLog.coloredLog(str, color.New(color.FgRed))
 	appLog.writeToFile(str)
+	return appLog
+}
+
+// coloredLog prints the given string with the given color to the console.
+// If a Mutex is set for the AppLog, it locks the mutex before printing the string
+// to ensure thread safety. It also sets color.NoColor to false before printing so
+// that the color is actually applied. If no Mutex is set, it simply prints the
+// string with the given color.
+func (appLog *AppLog) coloredLog(str string, newColor *color.Color) *AppLog {
+	if appLog.Mutex != nil {
+		appLog.Mutex.Lock()
+		color.NoColor = false
+		newColor.Print(str)
+		appLog.Mutex.Unlock()
+	} else {
+		newColor.Println(str)
+	}
 	return appLog
 }
