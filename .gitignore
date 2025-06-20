@@ -34,3 +34,4 @@ go.work.sum
 /log_*.txt
 /internal/applog/test.log
 /internal/app/test.txt
+/cspell.json
