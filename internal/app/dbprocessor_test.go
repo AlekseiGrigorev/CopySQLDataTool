@@ -41,6 +41,20 @@ func prepareDb() *appdb.AppDb {
 	return &db
 }
 
+func TestGetProcessedMsgNilDb(t *testing.T) {
+	p := DbProcessor{}
+	actual := p.GetProcessedMsg()
+	expected := "db is not set"
+	assert.Contains(t, actual, expected)
+}
+
+func TestWriteNilDb(t *testing.T) {
+	buffer := []string{"str1", "str2"}
+	p := DbProcessor{}
+	err := p.Write(buffer, nil)
+	assert.Equal(t, err, fmt.Errorf("db is not set"))
+}
+
 // TestWriteDb tests the Write method of the DbProcessor struct with a raw SQL statement.
 // It uses a buffer with 4 strings: "INSERT INTO test_table VALUES (1)", ", (2)", ", (3)", and ";".
 // It then calls the Write method with the buffer and an empty slice of any.

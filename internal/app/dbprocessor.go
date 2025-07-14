@@ -23,6 +23,9 @@ type DbProcessor struct {
 // The method returns an error if the execution of the SQL statement fails.
 // See: app.RowsProcessorInterface.Write
 func (db *DbProcessor) Write(buffer []string, data []any) error {
+	if db.AppDb == nil {
+		return fmt.Errorf("db is not set")
+	}
 	_, err := db.AppDb.Exec(strings.Join(buffer, ""), data...)
 	if err != nil {
 		return fmt.Errorf("error writing to database: %w", err)
@@ -35,5 +38,8 @@ func (db *DbProcessor) Write(buffer []string, data []any) error {
 // for logging and debugging purposes to confirm successful data processing.
 // See: app.RowsProcessorInterface.GetProcessedMsg
 func (db *DbProcessor) GetProcessedMsg() string {
-	return fmt.Sprint("Rows processed to table", db.TableName)
+	if db.AppDb == nil {
+		return fmt.Errorf("db is not set").Error()
+	}
+	return fmt.Sprint("Rows processed to table: ", db.TableName)
 }

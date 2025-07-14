@@ -19,6 +19,9 @@ type FileProcessor struct {
 // after each statement. It does not use the data parameter.
 // See: app.RowsProcessorInterface.Write
 func (fp *FileProcessor) Write(buffer []string, data []any) error {
+	if fp.File == nil {
+		return fmt.Errorf("file is not set")
+	}
 	for _, stmt := range buffer {
 		_, err := fp.File.WriteString(stmt + "\n")
 		if err != nil {
@@ -33,5 +36,8 @@ func (fp *FileProcessor) Write(buffer []string, data []any) error {
 // and debugging purposes to confirm successful data processing.
 // See: app.RowsProcessorInterface.GetProcessedMsg
 func (fp *FileProcessor) GetProcessedMsg() string {
-	return fmt.Sprint("Rows processed to file", fp.File.Name())
+	if fp.File == nil {
+		return fmt.Errorf("file is not set").Error()
+	}
+	return fmt.Sprint("Rows processed to file: ", fp.File.Name())
 }
