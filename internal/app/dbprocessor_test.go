@@ -41,6 +41,8 @@ func prepareDb() *appdb.AppDb {
 	return &db
 }
 
+// TestGetProcessedMsgNilDb tests the GetProcessedMsg method of the DbProcessor type when the AppDb field is not set.
+// It calls the GetProcessedMsg method and checks that the returned message contains the string "db is not set".
 func TestGetProcessedMsgNilDb(t *testing.T) {
 	p := DbProcessor{}
 	actual := p.GetProcessedMsg()
@@ -48,6 +50,9 @@ func TestGetProcessedMsgNilDb(t *testing.T) {
 	assert.Contains(t, actual, expected)
 }
 
+// TestWriteNilDb tests the Write method of the DbProcessor type when the AppDb field is not set.
+// It calls the Write method with a buffer and nil data, and checks that the returned error
+// is "db is not set".
 func TestWriteNilDb(t *testing.T) {
 	buffer := []string{"str1", "str2"}
 	p := DbProcessor{}
