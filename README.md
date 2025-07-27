@@ -4,6 +4,10 @@
 
 Copy data from one database or instance to another. Works with MySQL, Clickhouse and another go database/sql interface databases.
 
+* Flexible selective data copying based on queries - copy only what you need and save time and resources
+* Copy data in parts - copy data in chunks to avoid overloading the database
+* Multithreaded data copying from multiple tables - speed up the data copying process
+
 ## Repository
 
 <https://github.com/AlekseiGrigorev/CopySQLDataTool>
@@ -17,6 +21,8 @@ Build with static link
 
 ## Command line options
 
+`-help` - show help (single option, without other options, show help and exit program)
+`-version` - show version (single option, without other options, show version and exit program)
 `-config <path to config file>` - path to config file (default: config.json)
 `-log <path to log file>` - path to log file (default: no log file (on screen log))
 `-go` - use goroutines (default: no (do not use goroutines))
