@@ -33,6 +33,14 @@ See file config.example.json
 
 `$.config.default_dataset.query_type, $.datasets.query_type` - Query type ("", "simple", "limitoffset", "orderbyid")
 
+For example:
+
+Query type "simple" - `SELECT * FROM db.table`
+
+Query type "limitoffset" - `SELECT * FROM db.table` - simple query that will be appended with the string `LIMIT %d OFFSET %d;` (where the LIMIT value is set, and OFFSET is calculated)
+
+Query type "orderbyid" - `SELECT * FROM db.table WHERE id > {{id}} ORDER BY id LIMIT 10000;` - query with the placeholder `{{id}}` that will be replaced with the last id from the previous query
+
 `$.config.default_dataset.sql_statement, $.datasets.sql_statement` - SQL statement ("prepared", "raw")
 
 ## Author

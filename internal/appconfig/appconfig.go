@@ -11,15 +11,16 @@ import (
 	"strings"
 )
 
+// Constants for configuration types and states.
 const (
-	TYPE_UNDEFINED     = ""
-	TYPE_SIMPLE        = "simple"
-	TYPE_LIMIT_OFFSET  = "limitoffset"
-	TYPE_ORDERBYID     = "orderbyid"
-	STATEMENT_PREPARED = "prepared"
-	STATEMENT_RAW      = "raw"
-	COPY_TO_FILE       = "file"
-	COPY_TO_DB         = "db"
+	QUERY_TYPE_UNDEFINED    = ""
+	QUERY_TYPE_SIMPLE       = "simple"
+	QUERY_TYPE_LIMIT_OFFSET = "limitoffset"
+	QUERY_TYPE_ORDERBYID    = "orderbyid"
+	STATEMENT_PREPARED      = "prepared"
+	STATEMENT_RAW           = "raw"
+	COPY_TO_FILE            = "file"
+	COPY_TO_DB              = "db"
 )
 
 // Config represents the root configuration structure
@@ -48,26 +49,31 @@ type DBConfig struct {
 type DefaultConfig struct {
 	Description   string `json:"description"`
 	InsertCommand string `json:"insert_command"`
-	Rows          int    `json:"rows"`
+	Rows          int64  `json:"rows"`
 	CopyTo        string `json:"copy_to"`
 	QueryType     string `json:"query_type"`
 	SqlStatement  string `json:"sql_statement"`
-	ExecutionTime int    `json:"execution_time"`
+	ExecutionTime int64  `json:"execution_time"`
 }
 
 // Dataset represents a query and its target table
 type Dataset struct {
-	Description          string `json:"description"`
-	Query                string `json:"query"`
-	Table                string `json:"table"`
-	Enabled              bool   `json:"enabled"`
-	InsertCommand        string `json:"insert_command"`
-	Rows                 int    `json:"rows"`
-	CopyTo               string `json:"copy_to"`
-	QueryType            string `json:"query_type"`
-	SqlStatement         string `json:"sql_statement"`
-	ExecutionTime        int    `json:"execution_time"`
-	InitialId            int    `json:"initial_id"`
+	Description   string `json:"description"`
+	Query         string `json:"query"`
+	Table         string `json:"table"`
+	Enabled       bool   `json:"enabled"`
+	InsertCommand string `json:"insert_command"`
+	Rows          int64  `json:"rows"`
+	CopyTo        string `json:"copy_to"`
+	QueryType     string `json:"query_type"`
+	SqlStatement  string `json:"sql_statement"`
+	ExecutionTime int64  `json:"execution_time"`
+	// Limit for query type "limitoffset"
+	Limit int64 `json:"limit"`
+	// Initial Offset for query type "limitoffset"
+	InitialOffset int64 `json:"initial_offset"`
+	// Initial Id for query type "orderbyid"
+	InitialId            int64  `json:"initial_id"`
 	OnInsertSessionStart string `json:"on_insert_session_start"`
 	OnInsertSessionEnd   string `json:"on_insert_session_end"`
 }

@@ -30,9 +30,9 @@ type RowsProcessor struct {
 	// Columns to be used for formatting.
 	columns []string
 	// Count of rows processed in one insert command.
-	count int
+	count int64
 	// All processed rows counter.
-	rowsCount int
+	rowsCount int64
 }
 
 // Process opens the data reader, reads rows, formats them according to the set InsertCommand and SqlStatement,

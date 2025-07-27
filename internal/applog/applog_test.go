@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Constants for testing.
 const (
 	FILE     = "test.log"
 	TEST_MSG = "Test message"
@@ -33,6 +34,8 @@ func TestInfo(t *testing.T) {
 	assert.Contains(t, s, TEST_MSG)
 }
 
+// Tests the behavior of the String method when the Id field is set.
+// It tests that the formatted string contains the Id field and the provided message.
 func TestId(t *testing.T) {
 	log := AppLog{
 		Id: "test",
@@ -70,6 +73,9 @@ func TestWriteToFile(t *testing.T) {
 	assert.Contains(t, s, TEST_MSG)
 }
 
+// TestGo tests the AppLog type's ability to be used by multiple goroutines at the same time.
+// It creates a file, starts 100 goroutines, and each goroutine writes a message to the file using the Info, Warn, Error, and Ok methods.
+// The test checks that all messages are written to the file and are not duplicated or corrupted due to concurrent access.
 func TestGo(t *testing.T) {
 	t.Cleanup(cleanup)
 	file, err := os.Create(FILE)

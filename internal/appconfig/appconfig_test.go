@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Constants for testing.
 const (
 	configJSON = `{
     "config": {

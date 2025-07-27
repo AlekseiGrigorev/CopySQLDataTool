@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// Constants for date and time formatting.
 const (
 	REFERENCE_DATE = "2006-01-02 15:04:05"
 )

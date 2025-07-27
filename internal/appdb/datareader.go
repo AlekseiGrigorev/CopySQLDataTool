@@ -6,7 +6,6 @@ package appdb
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -14,21 +13,25 @@ import (
 // It supports features like query pagination, execution time limits, and dynamic query parameter management.
 type DataReader struct {
 	AppDb         *AppDb
-	Limit         int
 	Query         string
 	Args          []any
-	Type          string
+	QueryType     string
 	Params        map[string]any
-	ExecutionTime int
-	InitialId     int
-	nextOffset    int
-	columns       []string
-	rows          *sql.Rows
-	valuePtrs     []any
-	values        []any
-	startTime     time.Time
-	prevQuery     string
-	lastQuery     string
+	ExecutionTime int64
+	// Initial Id for query type "orderbyid"
+	InitialId int64
+	// Limit for query type "limitoffset"
+	Limit int64
+	// Initial Offset for query type "limitoffset"
+	InitialOffset  int64
+	queryProcessor QueryProcessorInterface
+	columns        []string
+	rows           *sql.Rows
+	valuePtrs      []any
+	values         []any
+	startTime      time.Time
+	prevQuery      string
+	lastQuery      string
 }
 
 // Open opens the database connection for the underlying AppDb instance.
@@ -41,7 +44,6 @@ func (dataReader *DataReader) Open() error {
 // It is important to call Close after using a DataReader to ensure the database connection is released.
 func (dataReader *DataReader) Close() {
 	dataReader.closeRows()
-	dataReader.nextOffset = 0
 	dataReader.startTime = time.Time{}
 	dataReader.prevQuery = ""
 	dataReader.lastQuery = ""
@@ -82,54 +84,16 @@ func (dataReader *DataReader) reopenAppDbByExecutionTime() {
 	}
 }
 
-// prepareQueryLimitOffset prepares a SQL query with pagination functionality by appending
-// a LIMIT and OFFSET clause to the existing query. It trims any trailing whitespace or semicolons
-// from the original query and then appends the LIMIT clause with the specified limit and offset.
-// The offset is incremented by the limit value after each call to facilitate paging through results.
-func (dataReader *DataReader) prepareQueryLimitOffset() string {
-	if dataReader.rows == nil {
-		dataReader.nextOffset = 0
-	}
-	trimmedQuery := strings.TrimRight(dataReader.Query, " \t\n\r;")
-	query := trimmedQuery + fmt.Sprintf(" LIMIT %d OFFSET %d;", dataReader.Limit, dataReader.nextOffset)
-	dataReader.nextOffset += dataReader.Limit
-	return query
-}
-
-// prepareQueryOrderById prepares a SQL query with pagination functionality by replacing
-// the "{{id}}" parameter in the existing query with the value of the InitialId field
-// if the values slice is empty, or with the first value of the values slice otherwise.
-// It returns the prepared query string.
-func (dataReader *DataReader) prepareQueryOrderById() string {
-	query := ""
-	if len(dataReader.values) == 0 {
-		query = strings.ReplaceAll(dataReader.Query, "{{id}}", fmt.Sprintf("%d", dataReader.InitialId))
-	} else {
-		query = strings.ReplaceAll(dataReader.Query, "{{id}}", fmt.Sprintf("%d", dataReader.values[0]))
-	}
-	return query
-}
-
-// prepareQuery prepares the SQL query for execution based on the DataReader type.
-// For type "limitoffset", it appends a LIMIT and OFFSET clause to the query.
-// For type "orderbyid", it replaces the "{{id}}" parameter in the query with the value of InitialId if the values slice is empty, or with the first value of the values slice otherwise.
-// For any other type, it returns the query as is.
-func (dataReader *DataReader) prepareQuery() string {
-	switch dataReader.Type {
-	case "limitoffset":
-		return dataReader.prepareQueryLimitOffset()
-	case "orderbyid":
-		return dataReader.prepareQueryOrderById()
-	}
-	return dataReader.Query
-}
-
 // query executes the prepared SQL query and sets the rows and columns of the DataReader instance.
 // It also handles connection reopening if the query execution time has exceeded the allowed
 // ExecutionTime and handles the case when the AppDb connection is not open.
 // It returns an error if the query execution fails.
 func (dataReader *DataReader) query() error {
-	query := dataReader.prepareQuery()
+	if dataReader.queryProcessor == nil {
+		dataReader.initQueryProcessor()
+	}
+	dataReader.queryProcessor.SetValue("id", dataReader.getLatId())
+	query := dataReader.queryProcessor.ProcessQuery()
 	dataReader.prevQuery = dataReader.lastQuery
 	dataReader.lastQuery = query
 
@@ -165,6 +129,29 @@ func (dataReader *DataReader) query() error {
 	}
 
 	return nil
+}
+
+// initQueryProcessor initializes the query processor for the DataReader by creating a new
+// instance using the QueryProcessorFactory. It sets the initial values for the query
+// processor, including the initial ID, limit, and offset, and assigns the query processor
+// to the DataReader's queryProcessor field.
+func (dataReader *DataReader) initQueryProcessor() {
+	queryProcessorFactory := QueryProcessorFactory{}
+	values := make(map[string]any)
+	values["id"] = dataReader.InitialId
+	values["limit"] = dataReader.Limit
+	values["offset"] = dataReader.InitialOffset
+	dataReader.queryProcessor = queryProcessorFactory.CreateQueryProcessor(dataReader.QueryType, dataReader.Query, values)
+}
+
+// getLatId returns the last ID in the result set of the database query.
+// If the query returned no rows, it returns the InitialId field.
+func (dataReader *DataReader) getLatId() int64 {
+	// If the values slice is empty or the first element is nil (no rows returned), return the initial ID
+	if len(dataReader.values) == 0 || dataReader.values[0] == nil {
+		return dataReader.InitialId
+	}
+	return dataReader.values[0].(int64)
 }
 
 // Columns returns a slice of strings containing the names of the columns

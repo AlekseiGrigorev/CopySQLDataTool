@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Constants for testing.
 const (
 	FILE       = "test.txt"
 	TBL_NAME_2 = "test_table2"
@@ -21,34 +22,34 @@ const (
 // It truncates the table, inserts 3 rows, and sets the DataReader to read the table with the given number of rows.
 // The RowsProcessor is configured to write rows to the given processor as a single SQL statement.
 // The function returns the prepared RowsProcessor or nil if there is an error.
-func prepareProcessor(processor RowsProcessorInterface, rows int) *RowsProcessor {
+func prepareProcessor(t *testing.T, processor RowsProcessorInterface, rows int64) *RowsProcessor {
 	db := appdb.AppDb{
 		Driver: "mysql",
 		Dsn:    DSN,
 	}
 	err := db.Open()
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	_, err = db.Exec(TRUNC_TBL_SQL)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	_, err = db.Exec(INSERT_3)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 
 	p := RowsProcessor{
 		Processor: processor,
 		DataReader: &appdb.DataReader{
-			AppDb: &db,
-			Query: SELECT_TBL_SQL,
-			Type:  appdb.QUERY_TYPE_SIMPLE,
-			Limit: rows,
+			AppDb:     &db,
+			Query:     SELECT_TBL_SQL,
+			QueryType: appdb.QUERY_TYPE_SIMPLE,
+			Limit:     rows,
 		},
 		Log: nil,
 		Dataset: Dataset{
@@ -65,19 +66,19 @@ func prepareProcessor(processor RowsProcessorInterface, rows int) *RowsProcessor
 // prepareDbRp returns a new AppDb instance with the database connection opened.
 // It truncates the table given by TBL_NAME_2 after opening the database connection.
 // It returns nil in case of any error during the process.
-func prepareDbRp() *appdb.AppDb {
+func prepareDbRp(t *testing.T) *appdb.AppDb {
 	db := appdb.AppDb{
 		Driver: "mysql",
 		Dsn:    DSN,
 	}
 	err := db.Open()
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	_, err = db.Exec("TRUNCATE TABLE " + TBL_NAME_2)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	return &db
@@ -101,7 +102,7 @@ func TestWriteFileRp1(t *testing.T) {
 		assert.Fail(t, "error creating file")
 	}
 	defer file.Close()
-	p := prepareProcessor(&FileProcessor{File: file}, 1)
+	p := prepareProcessor(t, &FileProcessor{File: file}, 1)
 	err = p.Process()
 	if err != nil {
 		fmt.Println(err)
@@ -122,7 +123,7 @@ func TestWriteFileRp2(t *testing.T) {
 		assert.Fail(t, "error creating file")
 	}
 	defer file.Close()
-	p := prepareProcessor(&FileProcessor{File: file}, 2)
+	p := prepareProcessor(t, &FileProcessor{File: file}, 2)
 	err = p.Process()
 	if err != nil {
 		fmt.Println(err)
@@ -136,7 +137,7 @@ func TestWriteFileRp2(t *testing.T) {
 // It uses a DbProcessor that writes two rows to a MySQL database table
 // using the STATEMENT_RAW SqlStatementType.
 func TestWriteDbRp(t *testing.T) {
-	p := prepareProcessor(&DbProcessor{AppDb: prepareDbRp(), TableName: TBL_NAME_2}, 2)
+	p := prepareProcessor(t, &DbProcessor{AppDb: prepareDbRp(t), TableName: TBL_NAME_2}, 2)
 	p.Dataset.SqlStatementType = STATEMENT_TYPE_RAW
 	err := p.Process()
 	if err != nil {
@@ -151,7 +152,7 @@ func TestWriteDbRp(t *testing.T) {
 // It uses a DbProcessor that writes two rows to a MySQL database table
 // using the STATEMENT_PREPARED SqlStatementType.
 func TestWriteDbRpPrepared(t *testing.T) {
-	p := prepareProcessor(&DbProcessor{AppDb: prepareDbRp(), TableName: TBL_NAME_2}, 2)
+	p := prepareProcessor(t, &DbProcessor{AppDb: prepareDbRp(t), TableName: TBL_NAME_2}, 2)
 	p.Dataset.SqlStatementType = STATEMENT_TYPE_PREPARED
 	err := p.Process()
 	if err != nil {

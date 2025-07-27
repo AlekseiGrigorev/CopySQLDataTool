@@ -3,6 +3,7 @@
 // Copyright (c) 2025 Aleksei Grigorev
 package app
 
+// Constants. Statement types for SQL insert operations.
 const (
 	// Statement type for prepared statements (INSERT INTO ... VALUES (?, ?, ...))
 	STATEMENT_TYPE_PREPARED = "prepared"
@@ -19,7 +20,7 @@ type Dataset struct {
 	// Table name
 	TableName string
 	// Rows per command to insert multiple rows at once
-	RowsPerCommand int
+	RowsPerCommand int64
 	// Type of SQL statement to be used for the insert operation.
 	// prepared, simple, custom etc.
 	// See: STATEMENT_TYPE_PREPARED, STATEMENT_TYPE_RAW

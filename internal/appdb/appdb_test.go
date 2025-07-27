@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Constants for testing.
 const (
 	TEST_DSN                   = "root:root@tcp(127.0.0.1:3306)/test"
 	TEST_TBL_NAME              = "test_table"

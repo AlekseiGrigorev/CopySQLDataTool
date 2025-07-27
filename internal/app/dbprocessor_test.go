@@ -11,31 +11,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const DSN = "root:root@tcp(127.0.0.1:3306)/test"
-const TBL_NAME = "test_table"
-const TRUNC_TBL_SQL = "TRUNCATE TABLE " + TBL_NAME
-const INSERT_INTO = "INSERT INTO "
-const VALUES_123 = " VALUES (1), (2), (3)"
-const INSERT_3 = INSERT_INTO + TBL_NAME + VALUES_123
-const SELECT_FROM = "SELECT * FROM "
-const SELECT_TBL_SQL = SELECT_FROM + TBL_NAME + ";"
+// Constants for testing.
+const (
+	DSN            = "root:root@tcp(127.0.0.1:3306)/test"
+	TBL_NAME       = "test_table"
+	TRUNC_TBL_SQL  = "TRUNCATE TABLE " + TBL_NAME
+	INSERT_INTO    = "INSERT INTO "
+	VALUES_123     = " VALUES (1), (2), (3)"
+	INSERT_3       = INSERT_INTO + TBL_NAME + VALUES_123
+	SELECT_FROM    = "SELECT * FROM "
+	SELECT_TBL_SQL = SELECT_FROM + TBL_NAME + ";"
+)
 
 // prepareDb returns a new AppDb instance with the database connection opened.
 // It truncates the table given by TBL_NAME after opening the database connection.
 // It returns nil in case of any error during the process.
-func prepareDb() *appdb.AppDb {
+func prepareDb(t *testing.T) *appdb.AppDb {
 	db := appdb.AppDb{
 		Driver: "mysql",
 		Dsn:    DSN,
 	}
 	err := db.Open()
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	_, err = db.Exec(TRUNC_TBL_SQL)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 		return nil
 	}
 	return &db
@@ -68,7 +71,7 @@ func TestWriteNilDb(t *testing.T) {
 func TestWriteDb(t *testing.T) {
 	buffer := []string{INSERT_INTO + TBL_NAME + " VALUES (1)", ", (2)", ", (3)", ";"}
 	p := DbProcessor{
-		AppDb:     prepareDb(),
+		AppDb:     prepareDb(t),
 		TableName: TBL_NAME,
 	}
 	err := p.Write(buffer, []any{})
@@ -90,7 +93,7 @@ func TestWriteDb(t *testing.T) {
 func TestWriteDbPreparedStatement(t *testing.T) {
 	buffer := []string{INSERT_INTO + TBL_NAME + " VALUES (?)", ", (?)", ", (?)", ";"}
 	p := DbProcessor{
-		AppDb:     prepareDb(),
+		AppDb:     prepareDb(t),
 		TableName: TBL_NAME,
 	}
 	err := p.Write(buffer, []any{1, 2, 3})

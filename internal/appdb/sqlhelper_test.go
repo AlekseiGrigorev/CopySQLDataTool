@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Constants for testing.
 const (
 	TEST_DB_TBL_NAME             = "db.table"
 	TEST_SELECT_FROM_DB_TBL_NAME = "SELECT * FROM " + TEST_DB_TBL_NAME
@@ -44,5 +45,17 @@ func TestGetFromTableNameSpace(t *testing.T) {
 	}
 	expected := TEST_DB_TBL_NAME
 	actual := helper.GetFromTableName()
+	assert.Equal(t, expected, actual)
+}
+
+// TestStringify verifies that the SetStringify method correctly normalizes
+// the SQL query string by replacing all whitespace characters with a single space.
+func TestStringify(t *testing.T) {
+	helper := SqlHelper{
+		Sql: " SELECT\t* FROM\r\nTABLE    WHERE\n\t  ID\r= 1   \v\f; ",
+	}
+	helper.SetStringify()
+	expected := "SELECT * FROM TABLE WHERE ID = 1 ;"
+	actual := helper.Sql
 	assert.Equal(t, expected, actual)
 }

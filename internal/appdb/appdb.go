@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// Constants for query types and statement types.
 const (
 	QUERY_TYPE_UNDEFINED    = ""
 	QUERY_TYPE_SIMPLE       = "simple"

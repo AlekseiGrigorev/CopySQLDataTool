@@ -17,10 +17,20 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const ERROR = "Error:"
+// Constants.
+const (
+	// Constants for log messages.
+	ERROR = "Error:"
+)
 
-var Config appconfig.Config
-var Log applog.AppLog
+var (
+	// Application version.
+	Version = "2.0.0"
+	// Application configuration.
+	Config appconfig.Config
+	// Application log.
+	Log applog.AppLog
+)
 
 // Main is the main entry point of the application.
 // It reads the configuration file and processes each dataset by calling processDataset.
@@ -32,10 +42,16 @@ func main() {
 		Mutex: &sync.Mutex{},
 	}
 
+	version := flag.Bool("version", false, "Application version")
 	configFileName := flag.String("config", "config.json", "Path to the configuration file")
 	logFileName := flag.String("log", "", "Path to the log file")
 	goroutines := flag.Bool("go", false, "Use goroutines")
 	flag.Parse()
+
+	if *version {
+		fmt.Println("Version:", Version)
+		return
+	}
 
 	logFile, err := prepareLogFile(*logFileName)
 	if logFile != nil && err == nil {
@@ -310,8 +326,10 @@ func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *app
 			Dsn:    dbConf.DSN,
 		},
 		Query:         dataset.Query,
-		Type:          dataset.QueryType,
+		QueryType:     dataset.QueryType,
 		ExecutionTime: dataset.ExecutionTime,
+		Limit:         dataset.Limit,
 		InitialId:     dataset.InitialId,
+		InitialOffset: dataset.InitialOffset,
 	}
 }

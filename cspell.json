@@ -26,6 +26,7 @@
         "extldflags",
         "fatih",
         "filippo",
+        "GOARCH",
         "gopkg",
         "goroutines",
         "isatty",

@@ -1,0 +1,19 @@
+VERSION ?= dev
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+LDFLAGS := -X main.version=$(VERSION) \
+           -X main.commit=$(COMMIT) \
+           -X main.buildDate=$(BUILD_DATE)
+
+build:
+    go build -ldflags "$(LDFLAGS)" -o myapp
+
+install:
+    go install -ldflags "$(LDFLAGS)"
+
+release:
+    @echo "Building release version $(VERSION)"
+    GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o copysqldatatool-linux-amd64 main.go
+    GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o copysqldatatool-windows-amd64.exe main.go
+    GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o copysqldatatool-darwin-amd64 main.go

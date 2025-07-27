@@ -5,6 +5,7 @@ package appdb
 
 import (
 	"regexp"
+	"strings"
 )
 
 // SqlHelper represents a helper struct for managing SQL queries.
@@ -12,6 +13,18 @@ import (
 type SqlHelper struct {
 	// Sql is the SQL query string
 	Sql string
+}
+
+// Stringify returns the SQL query string with all whitespace characters replaced by a single space.
+func (sqlHelper *SqlHelper) Stringify() string {
+	fields := strings.Fields(sqlHelper.Sql)
+	return strings.Join(fields, " ")
+}
+
+// SetStringify sets the Sql field of the SqlHelper to the stringified version of the SQL query.
+func (sqlHelper *SqlHelper) SetStringify() *SqlHelper {
+	sqlHelper.Sql = sqlHelper.Stringify()
+	return sqlHelper
 }
 
 // GetFromTableName extracts the table name from the SQL query stored in the SqlHelper.
