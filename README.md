@@ -27,6 +27,8 @@ Build with static link
 `-log <path to log file>` - path to log file (default: no log file (on screen log))
 `-go` - use goroutines (default: no (do not use goroutines))
 
+For example: `./copysqldatatool.exe -config=config_local.json -log=log.txt`
+
 ## Config file
 
 See file config.example.json

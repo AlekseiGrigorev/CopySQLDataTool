@@ -31,7 +31,7 @@ go.work.sum
 *.sql
 /sandbox.go
 /sandbox.txt
-/log_*.txt
+/log_*
 /internal/applog/test.log
 /internal/app/test.txt
 /cspell.json

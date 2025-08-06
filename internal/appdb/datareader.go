@@ -92,7 +92,7 @@ func (dataReader *DataReader) query() error {
 	if dataReader.queryProcessor == nil {
 		dataReader.initQueryProcessor()
 	}
-	dataReader.queryProcessor.SetValue("id", dataReader.getLatId())
+	dataReader.queryProcessor.SetValue("id", dataReader.getLastId())
 	query := dataReader.queryProcessor.ProcessQuery()
 	dataReader.prevQuery = dataReader.lastQuery
 	dataReader.lastQuery = query
@@ -144,14 +144,15 @@ func (dataReader *DataReader) initQueryProcessor() {
 	dataReader.queryProcessor = queryProcessorFactory.CreateQueryProcessor(dataReader.QueryType, dataReader.Query, values)
 }
 
-// getLatId returns the last ID in the result set of the database query.
+// getLastId returns the last ID in the result set of the database query.
 // If the query returned no rows, it returns the InitialId field.
-func (dataReader *DataReader) getLatId() int64 {
+func (dataReader *DataReader) getLastId() int64 {
 	// If the values slice is empty or the first element is nil (no rows returned), return the initial ID
 	if len(dataReader.values) == 0 || dataReader.values[0] == nil {
 		return dataReader.InitialId
 	}
-	return dataReader.values[0].(int64)
+
+	return dataReader.AnyToInt64(dataReader.values[0])
 }
 
 // Columns returns a slice of strings containing the names of the columns
@@ -210,4 +211,47 @@ func (dataReader *DataReader) Scan() ([]any, error) {
 		return nil, err
 	}
 	return dataReader.values, nil
+}
+
+// AnyToInt64 converts a value of any type to an int64, returning 0 if the value
+// cannot be converted. It supports conversion of the following types to int64:
+// int64, int, int32, int16, int8, uint64, uint, uint32, uint16, uint8, float64,
+// float32, and string. If the value is a string, it uses fmt.Sscan to parse the
+// string and extract the int64 value. If the value cannot be parsed, it returns 0.
+func (dataReader *DataReader) AnyToInt64(v any) int64 {
+	switch val := v.(type) {
+	case int64:
+		return val
+	case uint64: //clickhouse returns uint64
+		return int64(val)
+	case int:
+		return int64(val)
+	case int32:
+		return int64(val)
+	case int16:
+		return int64(val)
+	case int8:
+		return int64(val)
+	case uint:
+		return int64(val)
+	case uint32:
+		return int64(val)
+	case uint16:
+		return int64(val)
+	case uint8:
+		return int64(val)
+	case float64:
+		return int64(val)
+	case float32:
+		return int64(val)
+	case string:
+		var i int64
+		_, err := fmt.Sscan(val, &i)
+		if err != nil {
+			return 0
+		}
+		return i
+	default:
+		return 0
+	}
 }
