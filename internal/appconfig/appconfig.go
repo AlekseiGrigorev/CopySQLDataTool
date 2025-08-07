@@ -54,6 +54,8 @@ type DefaultConfig struct {
 	QueryType     string `json:"query_type"`
 	SqlStatement  string `json:"sql_statement"`
 	ExecutionTime int64  `json:"execution_time"`
+	// Limit for query type "limitoffset"
+	Limit int64 `json:"limit"`
 }
 
 // Dataset represents a query and its target table
@@ -179,6 +181,9 @@ func (config *Config) fillDataset(i int) {
 	}
 	if config.Datasets[i].SqlStatement == "" {
 		config.Datasets[i].SqlStatement = config.Config.DefaultDataset.SqlStatement
+	}
+	if config.Datasets[i].Limit == 0 {
+		config.Datasets[i].Limit = config.Config.DefaultDataset.Limit
 	}
 }
 
