@@ -331,5 +331,6 @@ func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *app
 		Limit:         dataset.Limit,
 		InitialId:     dataset.InitialId,
 		InitialOffset: dataset.InitialOffset,
+		MaxOffset:     dataset.MaxOffset,
 	}
 }

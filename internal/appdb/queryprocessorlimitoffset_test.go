@@ -24,3 +24,37 @@ func TestQueryProcessorLimitOffset(t *testing.T) {
 	actual = qp.ProcessQuery()
 	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 10 OFFSET 10;", actual)
 }
+
+// TestQueryProcessorLimitOffsetInitialLimit verifies that the ProcessQuery method of the
+// QueryProcessorLimitOffset struct correctly appends LIMIT and OFFSET clauses
+// to the SQL query when the Offset is set during initialization. It initializes the
+// query processor, sets a limit, sets the offset to a non-zero value, and asserts
+// that the resulting query includes the expected LIMIT and OFFSET values.
+func TestQueryProcessorLimitOffsetInitialLimit(t *testing.T) {
+	qp := QueryProcessorLimitOffset{Query: "SELECT * FROM table ORDER BY id"}
+	qp.InitQuery()
+	qp.Limit = 10
+	qp.Offset = 10
+	actual := qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 10 OFFSET 10;", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 10 OFFSET 20;", actual)
+}
+
+// TestQueryProcessorLimitOffsetMaxOffset verifies that the ProcessQuery method of the
+// QueryProcessorLimitOffset struct limits the offset to the MaxOffset value and resets
+// the offset to 0 if it exceeds the MaxOffset. It initializes the query processor,
+// sets a limit and a MaxOffset, and asserts that the resulting query includes the
+// expected LIMIT and OFFSET values.
+func TestQueryProcessorLimitOffsetMaxOffset(t *testing.T) {
+	qp := QueryProcessorLimitOffset{Query: "SELECT * FROM table ORDER BY id"}
+	qp.InitQuery()
+	qp.Limit = 10
+	qp.MaxOffset = 10
+	actual := qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 10 OFFSET 0;", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 10 OFFSET 10;", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table ORDER BY id LIMIT 0 OFFSET 0;", actual)
+}

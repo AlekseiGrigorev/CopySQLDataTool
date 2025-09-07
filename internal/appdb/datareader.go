@@ -23,7 +23,9 @@ type DataReader struct {
 	// Limit for query type "limitoffset"
 	Limit int64
 	// Initial Offset for query type "limitoffset"
-	InitialOffset  int64
+	InitialOffset int64
+	// Max Offset for query type "limitoffset"
+	MaxOffset      int64
 	queryProcessor QueryProcessorInterface
 	columns        []string
 	rows           *sql.Rows
@@ -141,6 +143,7 @@ func (dataReader *DataReader) initQueryProcessor() {
 	values["id"] = dataReader.InitialId
 	values["limit"] = dataReader.Limit
 	values["offset"] = dataReader.InitialOffset
+	values["max_offset"] = dataReader.MaxOffset
 	dataReader.queryProcessor = queryProcessorFactory.CreateQueryProcessor(dataReader.QueryType, dataReader.Query, values)
 }
 

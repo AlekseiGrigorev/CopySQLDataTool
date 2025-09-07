@@ -74,6 +74,8 @@ type Dataset struct {
 	Limit int64 `json:"limit"`
 	// Initial Offset for query type "limitoffset"
 	InitialOffset int64 `json:"initial_offset"`
+	// Max Offset for query type "limitoffset"
+	MaxOffset int64 `json:"max_offset"`
 	// Initial Id for query type "orderbyid"
 	InitialId            int64  `json:"initial_id"`
 	OnInsertSessionStart string `json:"on_insert_session_start"`

@@ -120,6 +120,28 @@ func TestDataReaderLimitOffset(t *testing.T) {
 	assert.Equal(t, counter, 10)
 }
 
+func TestDataReaderLimitOffsetInitialOffset(t *testing.T) {
+	dr := prepareDr(t)
+	defer dr.Close()
+	dr = insertTestRows(t, dr, 10)
+	dr.QueryType = QUERY_TYPE_LIMIT_OFFSET
+	dr.Limit = 4
+	dr.InitialOffset = 4
+	counter := readTestRows(t, dr)
+	assert.Equal(t, counter, 6)
+}
+
+func TestDataReaderLimitOffsetMaxOffset(t *testing.T) {
+	dr := prepareDr(t)
+	defer dr.Close()
+	dr = insertTestRows(t, dr, 10)
+	dr.QueryType = QUERY_TYPE_LIMIT_OFFSET
+	dr.Limit = 4
+	dr.MaxOffset = 4
+	counter := readTestRows(t, dr)
+	assert.Equal(t, counter, 8)
+}
+
 // TestDataReaderOrderById tests the DataReader struct by verifying that it correctly reads all rows from a table
 // when configured with TYPE_ORDERBYID. It initializes the DataReader with a default query that selects all columns
 // from the test table, truncates the table, inserts 10 rows, and reads all rows. The test verifies that the correct
