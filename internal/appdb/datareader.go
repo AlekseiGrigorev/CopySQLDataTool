@@ -12,12 +12,15 @@ import (
 // DataReader represents a database query reader with configurable parameters for executing and managing database queries.
 // It supports features like query pagination, execution time limits, and dynamic query parameter management.
 type DataReader struct {
-	AppDb         *AppDb
-	Query         string
-	Args          []any
-	QueryType     string
-	Params        map[string]any
+	AppDb     *AppDb
+	Query     string
+	Args      []any
+	QueryType string
+	Params    map[string]any
+	// Max execution time in seconds before reopening the AppDb connection
 	ExecutionTime int64
+	// Reset connection before each query
+	ResetConnection bool
 	// Initial Id for query type "orderbyid"
 	InitialId int64
 	// Limit for query type "limitoffset"
@@ -64,26 +67,37 @@ func (dataReader *DataReader) closeRows() {
 	}
 }
 
-// reopenAppDbByExecutionTime checks if the query execution time has exceeded the allowed
-// ExecutionTime. If it has, it closes the underlying sql.Rows and the AppDb database
-// connection, and then reopens the AppDb connection. It also resets the startTime to the
-// current time. If the query execution time has not exceeded the allowed ExecutionTime,
-// it does nothing.
-func (dataReader *DataReader) reopenAppDbByExecutionTime() {
+// reopenAppDbByExecutionTime checks if the connection should be reset by the specified
+// execution time. If the ResetConnection field is true, it calls reopenAppDb to reset
+// the connection. Otherwise, it checks if the execution time has exceeded the allowed
+// time and resets the connection if necessary. It returns the DataReader instance for
+// method chaining.
+func (dataReader *DataReader) reopenAppDbByExecutionTime() *DataReader {
+	// Check if the connection should be reset before each query
+	if dataReader.ResetConnection {
+		dataReader.reopenAppDb()
+		return dataReader
+	}
 	if dataReader.ExecutionTime <= 0 {
-		return
+		return dataReader
 	}
 	if dataReader.startTime.IsZero() {
 		dataReader.startTime = time.Now()
-		return
+		return dataReader
 	}
 	if time.Since(dataReader.startTime).Seconds() > float64(dataReader.ExecutionTime) {
-		dataReader.closeRows()
-		dataReader.AppDb.Close()
-		dataReader.AppDb.Open()
+		dataReader.reopenAppDb()
 		dataReader.startTime = time.Now()
-		return
+		return dataReader
 	}
+	return dataReader
+}
+
+func (dataReader *DataReader) reopenAppDb() *DataReader {
+	dataReader.closeRows()
+	dataReader.AppDb.Close()
+	dataReader.AppDb.Open()
+	return dataReader
 }
 
 // query executes the prepared SQL query and sets the rows and columns of the DataReader instance.

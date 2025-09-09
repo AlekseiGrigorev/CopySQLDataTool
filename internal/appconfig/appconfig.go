@@ -69,7 +69,10 @@ type Dataset struct {
 	CopyTo        string `json:"copy_to"`
 	QueryType     string `json:"query_type"`
 	SqlStatement  string `json:"sql_statement"`
-	ExecutionTime int64  `json:"execution_time"`
+	// Max execution time in seconds before reopening the AppDb connection
+	ExecutionTime int64 `json:"execution_time"`
+	// Reset connection before each query
+	ResetConnection bool `json:"reset_connection"`
 	// Limit for query type "limitoffset"
 	Limit int64 `json:"limit"`
 	// Initial Offset for query type "limitoffset"

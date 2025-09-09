@@ -213,3 +213,14 @@ func TestDataReaderManyOrderByIdWrongType(t *testing.T) {
 	counter := readTestRows(t, dr)
 	assert.Equal(t, counter, 3)
 }
+
+func TestDatReaderResetConnection(t *testing.T) {
+	dr := prepareDr(t)
+	defer dr.Close()
+	dr = insertTestRows(t, dr, 10)
+	dr.QueryType = QUERY_TYPE_ORDERBYID
+	dr.ResetConnection = true
+	dr.Query = "SELECT * FROM test_table WHERE id > {{id}} ORDER BY id LIMIT 1;"
+	counter := readTestRows(t, dr)
+	assert.Equal(t, counter, 10)
+}
