@@ -64,9 +64,8 @@ func (rp *RowsProcessor) Process() error {
 		rp.buffer.Clear()
 		rp.data = make([]any, 0)
 	}
-	if rp.Log != nil {
-		rp.Log.Ok(rp.Processor.GetProcessedMsg(), ":", rp.rowsCount)
-	}
+
+	rp.WriteLog("ok", rp.Processor.GetProcessedMsg(), ":", rp.rowsCount)
 	return nil
 }
 
@@ -120,9 +119,7 @@ func (rp *RowsProcessor) processRow() (bool, error) {
 		rp.buffer.Clear()
 		rp.data = make([]any, 0)
 		rp.count = 0
-		if rp.Log != nil {
-			rp.Log.Info(rp.Processor.GetProcessedMsg(), "...:", rp.rowsCount)
-		}
+		rp.WriteLog("info", rp.Processor.GetProcessedMsg(), "...:", rp.rowsCount)
 	}
 	return true, nil
 }
@@ -137,4 +134,14 @@ func (rp *RowsProcessor) appendRowToBuffer(insertStatement string) {
 	} else {
 		rp.buffer.AppendStr(fmt.Sprintf(", (%s)", insertStatement))
 	}
+}
+
+// WriteLog writes a log message to the RowsProcessor's log if it is not nil.
+// It takes a message type and any number of arguments, and writes the message to the log.
+// It returns the RowsProcessor itself, allowing for method chaining.
+func (rp *RowsProcessor) WriteLog(msgType string, args ...any) *RowsProcessor {
+	if rp.Log != nil {
+		rp.Log.Write(msgType, args...)
+	}
+	return rp
 }

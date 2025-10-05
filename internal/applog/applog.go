@@ -119,6 +119,26 @@ func (appLog *AppLog) Error(args ...any) *AppLog {
 	return appLog
 }
 
+// Write logs the given arguments as a message of the given type by prepending the appropriate
+// prefix to the arguments, formatting them with the current date and time, and writing the
+// formatted string to the file specified by the File field. The method returns itself.
+// The type of the message can be one of the following: "info", "ok", "warn", "error".
+// If the type is not recognized, the method defaults to logging the message as an informational message.
+func (appLog *AppLog) Write(msgType string, args ...any) *AppLog {
+	switch msgType {
+	case "info":
+		return appLog.Info(args...)
+	case "ok":
+		return appLog.Ok(args...)
+	case "warn":
+		return appLog.Warn(args...)
+	case "error":
+		return appLog.Error(args...)
+	default:
+		return appLog.Info(args...)
+	}
+}
+
 // coloredLog prints the given string with the given color to the console.
 // If a Mutex is set for the AppLog, it locks the mutex before printing the string
 // to ensure thread safety. It also sets color.NoColor to false before printing so

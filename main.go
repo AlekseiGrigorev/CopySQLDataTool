@@ -25,7 +25,7 @@ const (
 
 var (
 	// Application version.
-	Version = "2.0.0"
+	Version = "3.0.0"
 	// Application configuration.
 	Config appconfig.Config
 	// Application log.
@@ -242,6 +242,10 @@ func processRowsAndWriteToFile(src appconfig.DBConfig, file *os.File, dataset ap
 		},
 	}
 
+	processor.DataReader.OnQueryChanged.Subscribe(func(data any) {
+		log.Info("Query changed. Current query:", data)
+	})
+
 	err = processor.Process()
 	if err != nil {
 		log.Error("Error processing rows:", err)
@@ -298,6 +302,10 @@ func processRowsAndWriteToDb(src appconfig.DBConfig, dst appconfig.DBConfig, dat
 		},
 	}
 
+	processor.DataReader.OnQueryChanged.Subscribe(func(data any) {
+		log.Info("Query changed. Current query:", data)
+	})
+
 	err = processor.Process()
 	if err != nil {
 		log.Error("Error processing rows:", err)
@@ -333,5 +341,8 @@ func createDataReader(dbConf appconfig.DBConfig, dataset appconfig.Dataset) *app
 		InitialId:       dataset.InitialId,
 		InitialOffset:   dataset.InitialOffset,
 		MaxOffset:       dataset.MaxOffset,
+		BetweenStart:    dataset.BetweenStart,
+		BetweenEnd:      dataset.BetweenEnd,
+		BetweenStep:     dataset.BetweenStep,
 	}
 }

@@ -27,7 +27,7 @@ Build with static link
 `-log <path to log file>` - path to log file (default: no log file (on screen log))
 `-go` - use goroutines (default: no (do not use goroutines))
 
-For example: `./copysqldatatool.exe -config=config_local.json -log=log.txt`
+For example: `./copysqldatatool.exe -config="config_local.json" -log="log.txt" -go`
 
 ## Config file
 
@@ -39,7 +39,7 @@ See file config.example.json
 
 `$.config.default_dataset.copy_to, $.datasets.copy_to` - Copy data to ("file", "db" or "file,db")
 
-`$.config.default_dataset.query_type, $.datasets.query_type` - Query type ("", "simple", "limitoffset", "orderbyid")
+`$.config.default_dataset.query_type, $.datasets.query_type` - Query type ("", "simple", "limitoffset", "orderbyid", "between")
 
 For example:
 
@@ -48,6 +48,8 @@ Query type "simple" - `SELECT * FROM db.table`
 Query type "limitoffset" - `SELECT * FROM db.table` - simple query that will be appended with the string `LIMIT %d OFFSET %d;` (where the LIMIT value is set, and OFFSET is calculated)
 
 Query type "orderbyid" - `SELECT * FROM db.table WHERE id > {{id}} ORDER BY id LIMIT 10000;` - query with the placeholder `{{id}}` that will be replaced with the last id from the previous query
+
+Query type "between" - `SELECT * FROM db.table WHERE field BETWEEN '{{start}}' AND '{{end}}' ...` - query with the placeholders `{{start}}` and `{{end}}` that will be replaced with the calculated values or dates from parameters
 
 `$.config.default_dataset.sql_statement, $.datasets.sql_statement` - SQL statement ("prepared", "raw")
 

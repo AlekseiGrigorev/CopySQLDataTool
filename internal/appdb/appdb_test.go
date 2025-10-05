@@ -11,7 +11,7 @@ import (
 
 // Constants for testing.
 const (
-	TEST_DSN                   = "root:root@tcp(127.0.0.1:3306)/test"
+	TEST_DSN                   = "root:root@tcp(127.0.0.1:3307)/test"
 	TEST_TBL_NAME              = "test_table"
 	TEST_TRUNC_TBL_SQL         = "TRUNCATE TABLE " + TEST_TBL_NAME + ";"
 	TEST_INSERT_INTO_SQL       = "INSERT INTO " + TEST_TBL_NAME + " VALUES (?), (?), (?);"

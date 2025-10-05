@@ -17,6 +17,7 @@ const (
 	QUERY_TYPE_SIMPLE       = "simple"
 	QUERY_TYPE_LIMIT_OFFSET = "limitoffset"
 	QUERY_TYPE_ORDERBYID    = "orderbyid"
+	QUERY_TYPE_BETWEEN      = "between"
 	STATEMENT_PREPARED      = "prepared"
 	STATEMENT_RAW           = "raw"
 	COPY_TO_FILE            = "file"
@@ -80,9 +81,20 @@ type Dataset struct {
 	// Max Offset for query type "limitoffset"
 	MaxOffset int64 `json:"max_offset"`
 	// Initial Id for query type "orderbyid"
-	InitialId            int64  `json:"initial_id"`
+	InitialId int64 `json:"initial_id"`
+	// Initial value in BETWEEN condition for query type "between"
+	// Number or date string in format 'YYYY-MM-DD HH:MM:SS'
+	BetweenStart string `json:"between_start"`
+	// Final value in BETWEEN condition  for query type "between"
+	// Number or date string in format 'YYYY-MM-DD HH:MM:SS'
+	BetweenEnd string `json:"between_end"`
+	// Step between initial and final values in BETWEEN condition  for query type "between"
+	// Number or date string in format of range type '2h30m15s'
+	BetweenStep string `json:"between_step"`
+	// SQL script to be executed before inserting data. For example, disabling indexes
 	OnInsertSessionStart string `json:"on_insert_session_start"`
-	OnInsertSessionEnd   string `json:"on_insert_session_end"`
+	// SQL script to be executed after inserting data. For example, enabling indexes
+	OnInsertSessionEnd string `json:"on_insert_session_end"`
 }
 
 // Validate checks the configuration for required fields and returns an error if any are missing.

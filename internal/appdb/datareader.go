@@ -4,6 +4,7 @@
 package appdb
 
 import (
+	"copysqldatatool/internal/appevent"
 	"database/sql"
 	"fmt"
 	"time"
@@ -28,7 +29,18 @@ type DataReader struct {
 	// Initial Offset for query type "limitoffset"
 	InitialOffset int64
 	// Max Offset for query type "limitoffset"
-	MaxOffset      int64
+	MaxOffset int64
+	// Initial value in BETWEEN condition for query type "between"
+	// Number or date string in format 'YYYY-MM-DD HH:MM:SS'
+	BetweenStart string
+	// Final value in BETWEEN condition  for query type "between"
+	// Number or date string in format 'YYYY-MM-DD HH:MM:SS'
+	BetweenEnd string
+	// Step between initial and final values in BETWEEN condition  for query type "between"
+	// Number or date string in format of range type '2h30m15s'
+	BetweenStep string
+	// Event fired when the query is changed
+	OnQueryChanged appevent.AppEvent
 	queryProcessor QueryProcessorInterface
 	columns        []string
 	rows           *sql.Rows
@@ -56,6 +68,12 @@ func (dataReader *DataReader) Close() {
 	dataReader.valuePtrs = nil
 	dataReader.values = nil
 	dataReader.AppDb.Close()
+}
+
+// GetLastQuery returns the last query that was executed by the DataReader instance.
+// It is useful for debugging purposes to see which query was executed last.
+func (dataReader *DataReader) GetLastQuery() string {
+	return dataReader.lastQuery
 }
 
 // closeRows closes the underlying sql.Rows if it is not nil. It is called by Close to ensure the
@@ -112,6 +130,9 @@ func (dataReader *DataReader) query() error {
 	query := dataReader.queryProcessor.ProcessQuery()
 	dataReader.prevQuery = dataReader.lastQuery
 	dataReader.lastQuery = query
+	if dataReader.prevQuery != dataReader.lastQuery {
+		dataReader.OnQueryChanged.Trigger(query)
+	}
 
 	// Protection against error :Error 3024 (HY000): Query execution was interrupted, maximum statement execution time exceeded
 	dataReader.reopenAppDbByExecutionTime()
@@ -158,6 +179,9 @@ func (dataReader *DataReader) initQueryProcessor() {
 	values["limit"] = dataReader.Limit
 	values["offset"] = dataReader.InitialOffset
 	values["max_offset"] = dataReader.MaxOffset
+	values["start"] = dataReader.BetweenStart
+	values["end"] = dataReader.BetweenEnd
+	values["step"] = dataReader.BetweenStep
 	dataReader.queryProcessor = queryProcessorFactory.CreateQueryProcessor(dataReader.QueryType, dataReader.Query, values)
 }
 

@@ -17,6 +17,8 @@ func (f *QueryProcessorFactory) CreateQueryProcessor(queryType string, query str
 		p = &QueryProcessorLimitOffset{Query: query}
 	case QUERY_TYPE_ORDERBYID:
 		p = &QueryProcessorOrderByID{Query: query}
+	case QUERY_TYPE_BETWEEN:
+		p = &QueryProcessorBetween{Query: query}
 	default:
 		p = &QueryProcessorSimple{Query: query}
 	}

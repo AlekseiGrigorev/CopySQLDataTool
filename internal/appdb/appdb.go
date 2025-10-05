@@ -17,8 +17,10 @@ const (
 	QUERY_TYPE_SIMPLE       = "simple"
 	QUERY_TYPE_LIMIT_OFFSET = "limitoffset"
 	QUERY_TYPE_ORDERBYID    = "orderbyid"
+	QUERY_TYPE_BETWEEN      = "between"
 	STATEMENT_TYPE_PREPARED = "prepared"
 	STATEMENT_TYPE_RAW      = "raw"
+	DATE_TIME_LAYOUT        = "2006-01-02 15:04:05"
 )
 
 // AppDb represents a database connection configuration and handle.
