@@ -4,6 +4,7 @@
 package appdb
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
@@ -56,8 +57,61 @@ func (q *QueryProcessorBetween) SetValue(key string, value any) QueryProcessorIn
 // with the placeholders replaced.
 func (q *QueryProcessorBetween) ProcessQuery() string {
 	trimmedQuery := strings.TrimRight(q.Query, " \t\n\r;")
-	start, end := q.getBetweenDates()
+	start, end := "", ""
+	if q.isNumericFields() {
+		start, end = q.getBetweenInts()
+	} else {
+		start, end = q.getBetweenDates()
+	}
 	return strings.ReplaceAll(strings.ReplaceAll(trimmedQuery, "{{start}}", start), "{{end}}", end)
+}
+
+// IsNumericFields checks if Start, End, and Step fields are string representations of integers.
+// It attempts to convert each field to an integer and returns true only if all conversions succeed.
+func (q *QueryProcessorBetween) isNumericFields() bool {
+	_, errStart := strconv.Atoi(q.Start)
+	if errStart != nil {
+		return false
+	}
+
+	_, errEnd := strconv.Atoi(q.End)
+	if errEnd != nil {
+		return false
+	}
+
+	_, errStep := strconv.Atoi(q.Step)
+	return errStep == nil
+}
+
+// getBetweenInts returns the start and end integers for the BETWEEN clause of the query string.
+// The function increments the current start integer by the step duration after each call, facilitating
+// paging through results. If the current end integer is after the end integer specified in the query
+// processor, the current end integer is set to the end integer. The function returns the resulting start
+// and end integers as strings.
+func (q *QueryProcessorBetween) getBetweenInts() (string, string) {
+	if q.currentStart == "" {
+		q.currentStart = q.Start
+	}
+	currentStart, err := strconv.Atoi(q.currentStart)
+	if err != nil {
+		return "", ""
+	}
+	duration, err := strconv.Atoi(q.Step)
+	if err != nil {
+		return "", ""
+	}
+	end, err := strconv.Atoi(q.End)
+	if err != nil {
+		return "", ""
+	}
+	currentEnd := currentStart + duration
+	if currentEnd > end {
+		currentEnd = end
+	}
+	if currentStart < end {
+		q.currentStart = strconv.Itoa(currentStart + duration)
+	}
+	return strconv.Itoa(currentStart), strconv.Itoa(currentEnd)
 }
 
 // getBetweenDates returns the start and end dates for the BETWEEN clause of the query string.

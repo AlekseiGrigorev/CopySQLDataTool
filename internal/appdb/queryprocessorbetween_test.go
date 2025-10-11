@@ -37,3 +37,33 @@ func TestQueryProcessorBetweenEnd(t *testing.T) {
 	actual = qp.ProcessQuery()
 	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '2022-01-01 00:20:00' AND '2022-01-01 00:10:00' ORDER BY id", actual)
 }
+
+// TestQueryProcessorBetweenInt verifies that the QueryProcessorBetween struct correctly processes SQL queries with BETWEEN clauses
+// for integer fields and increments start and end values based on the provided step.
+func TestQueryProcessorBetweenInt(t *testing.T) {
+	qp := QueryProcessorBetween{Query: "SELECT * FROM table WHERE field BETWEEN '{{start}}' AND '{{end}}' ORDER BY id"}
+	qp.InitQuery()
+	qp.Start = "1"
+	qp.End = "10"
+	qp.Step = "1"
+	actual := qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '1' AND '2' ORDER BY id", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '2' AND '3' ORDER BY id", actual)
+}
+
+// TestQueryProcessorBetweenEndInt verifies that the QueryProcessorBetween struct correctly processes SQL queries with BETWEEN clauses for integer fields and increments start and end values based on the provided step when the end value is reached. It initializes the query processor, sets a limit, and asserts that the resulting query includes the expected clauses with the correct start and end values. The test checks that the start value is incremented by the step duration after each call, facilitating paging through results. If the current end value is after the end value specified in the query processor, the current end value is set to the end value.
+func TestQueryProcessorBetweenEndInt(t *testing.T) {
+	qp := QueryProcessorBetween{Query: "SELECT * FROM table WHERE field BETWEEN '{{start}}' AND '{{end}}' ORDER BY id"}
+	qp.InitQuery()
+	qp.Start = "1"
+	qp.End = "4"
+	qp.Step = "2"
+	qp.ProcessQuery()
+	actual := qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '3' AND '4' ORDER BY id", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '5' AND '4' ORDER BY id", actual)
+	actual = qp.ProcessQuery()
+	assert.Equal(t, "SELECT * FROM table WHERE field BETWEEN '5' AND '4' ORDER BY id", actual)
+}
