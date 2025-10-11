@@ -49,7 +49,7 @@ Query type "limitoffset" - `SELECT * FROM db.table` - simple query that will be 
 
 Query type "orderbyid" - `SELECT * FROM db.table WHERE id > {{id}} ORDER BY id LIMIT 10000;` - query with the placeholder `{{id}}` that will be replaced with the last id from the previous query
 
-Query type "between" - `SELECT * FROM db.table WHERE field BETWEEN '{{start}}' AND '{{end}}' ...` - query with the placeholders `{{start}}` and `{{end}}` that will be replaced with the calculated values or dates from parameters
+Query type "between" - `SELECT * FROM db.table WHERE field BETWEEN '{{start}}' AND '{{end}}' ...` - query with the placeholders `{{start}}` and `{{end}}` that will be replaced with the calculated values or dates or int values from parameters
 
 `$.config.default_dataset.sql_statement, $.datasets.sql_statement` - SQL statement ("prepared", "raw")
 
